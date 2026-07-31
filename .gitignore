@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+artifacts/
+dist/
+build/
+.dev-home/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+debian/.debhelper/
+debian/dribia-clockify-launchers/
+debian/files
+debian/debhelper-build-stamp
+debian/*.substvars
