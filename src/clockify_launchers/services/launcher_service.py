@@ -117,6 +117,8 @@ class LauncherService:
         project = self._db.get_project(launcher.target.project_id)
         if project:
             words.append(project.name)
+            if project.client_name:
+                words.append(project.client_name)
         if launcher.target.task_id:
             task = self._db.get_task(launcher.target.task_id)
             if task:

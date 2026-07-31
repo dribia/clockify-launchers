@@ -29,7 +29,13 @@ WS_SIDE = Workspace(id="ws-personal", name="Personal")
 WORKSPACES = [WS_MAIN, WS_SIDE]
 
 PROJECTS = [
-    Project(id="prj-tank", workspace_id=WS_MAIN.id, name="Tank", color="#03A9F4"),
+    Project(
+        id="prj-tank",
+        workspace_id=WS_MAIN.id,
+        name="Tank",
+        color="#03A9F4",
+        client_name="Acme Corp",
+    ),
     Project(id="prj-kaito", workspace_id=WS_MAIN.id, name="Kaito", color="#8BC34A"),
     Project(
         id="prj-longname",

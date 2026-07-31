@@ -159,3 +159,20 @@ def test_imported_launcher_pinned_by_default(env):
     )
     assert launcher.source is LauncherSource.IMPORTED
     assert launcher.management_policy is ManagementPolicy.PINNED
+
+
+def test_desktop_keywords_include_client_name(env):
+    """GNOME shell search must find launchers by the project's client name."""
+    from pathlib import Path
+
+    from clockify_launchers.domain.models import LauncherTarget
+
+    launcher = env.launcher_service.create(
+        account_id=env.account.id,
+        target=LauncherTarget(workspace_id="ws-dribia", project_id="prj-tank"),
+        display_name="Tank work",
+    )
+    content = Path(launcher.desktop_path).read_text(encoding="utf-8")
+    keywords_line = next(line for line in content.splitlines() if line.startswith("Keywords="))
+    assert "Tank" in keywords_line
+    assert "Acme Corp" in keywords_line
