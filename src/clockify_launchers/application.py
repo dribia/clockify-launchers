@@ -36,6 +36,8 @@ _CSS = """
 
 class ClockifyLaunchersApp(Adw.Application):
     def __init__(self, context: AppContext) -> None:
+        GLib.set_prgname(constants.EXECUTABLE)
+        GLib.set_application_name(constants.APP_NAME)
         super().__init__(
             application_id=constants.APP_ID + (".Demo" if context.demo else ""),
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,

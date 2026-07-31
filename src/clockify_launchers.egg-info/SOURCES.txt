@@ -1,4 +1,5 @@
 LICENSE
+README.md
 pyproject.toml
 src/clockify_launchers/__init__.py
 src/clockify_launchers/__main__.py

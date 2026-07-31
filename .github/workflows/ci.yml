@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-secret-1 \
+            xvfb dbus-x11 xdotool imagemagick python3-dogtail at-spi2-core \
+            desktop-file-utils appstream lintian \
+            debhelper dh-python pybuild-plugin-pyproject \
+            libglib2.0-bin devscripts python3-all python3-setuptools
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Bootstrap
+        run: make bootstrap
+
+      - name: Lint
+        run: make lint
+
+      - name: Typecheck
+        run: make typecheck
+
+      - name: Test
+        run: make test
+
+      - name: Validate data files
+        run: make validate-data
+
+      - name: UI capture
+        run: make ui-capture
+
+      - name: UI tests
+        run: make ui-test
+
+      - name: Build Debian package
+        run: make deb
+
+      - name: Upload UI artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots
+          path: artifacts/ui/
+          if-no-files-found: ignore

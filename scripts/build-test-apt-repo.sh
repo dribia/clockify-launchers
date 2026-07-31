@@ -22,7 +22,7 @@ cat > "$REPO/conf/distributions" <<EOF
 Origin: clockify-launchers-test
 Label: clockify-launchers-test
 Codename: noble
-Architectures: amd64 all source
+Architectures: amd64
 Components: main
 Description: Ephemeral test repository
 SignWith: default
@@ -44,7 +44,8 @@ APT_OPTS=(-o Dir="$APT_ROOT" -o Dir::State::status="$APT_ROOT/var/lib/dpkg/statu
           -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0)
 
 apt-get "${APT_OPTS[@]}" update
-apt-get "${APT_OPTS[@]}" install --download-only -y dribia-clockify-launchers
-ls "$APT_ROOT"/var/cache/apt/archives/dribia-clockify-launchers_*.deb
+apt-cache "${APT_OPTS[@]}" policy dribia-clockify-launchers | grep -q Candidate
+(cd "$WORK" && apt-get "${APT_OPTS[@]}" download dribia-clockify-launchers)
+ls "$WORK"/dribia-clockify-launchers_*.deb
 
 echo "test-apt-repo: package resolvable and downloadable by name from a signed repo"

@@ -1,0 +1,52 @@
+.TH CLOCKIFY-LAUNCHERS 1 "July 2026" "clockify-launchers 0.1.0" "User Commands"
+.SH NAME
+clockify-launchers \- create Ubuntu launchers that start Clockify timers
+.SH SYNOPSIS
+.B clockify-launchers
+.RI [ command ] " " [ options ]
+.SH DESCRIPTION
+Creates and maintains per-user application launchers that start Clockify
+timers. Launchers appear in the GNOME application grid; clicking one starts
+or switches the current timer. The Clockify API key is stored only in the
+system keyring.
+.SH COMMANDS
+.TP
+.B gui
+Open or focus the application window (default).
+.TP
+.BI "start --launcher " UUID
+Start or switch the timer for one launcher.
+.TP
+.B stop
+Stop the current user's running timer.
+.TP
+.BR sync " [" --background ]
+Reconcile launchers with Clockify now. With \fB--background\fR, run quietly
+for the systemd user timer.
+.TP
+.BR doctor " [" --network ]
+Diagnose configuration and integration. Read-only by default.
+.TP
+.BR reset " [" --remove-launchers "] [" --yes ]
+Reset application data. Previews what will be removed and touches only
+application-owned files.
+.TP
+.BI "demo --state " STATE
+Open the UI in a deterministic demo state.
+.SH EXIT STATUS
+0 on success or a defined no-op. Nonzero codes: 2 configuration, 3
+authentication, 4 API, 5 target, 6 desktop file, 7 partial switch, 8 locked.
+.SH FILES
+.TP
+.I $XDG_CONFIG_HOME/clockify-launchers/config.json
+Nonsecret configuration.
+.TP
+.I $XDG_STATE_HOME/clockify-launchers/state.db
+Local state database.
+.TP
+.I $XDG_DATA_HOME/applications/com.dribia.ClockifyLaunchers.*.desktop
+Generated launchers.
+.SH SEE ALSO
+.UR https://docs.clockify.me/
+Clockify API documentation
+.UE

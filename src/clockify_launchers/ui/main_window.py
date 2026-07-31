@@ -266,10 +266,14 @@ class MainWindow(Adw.ApplicationWindow):
         if self.context.demo:
             from clockify_launchers.demo.backend import FakeClockifyClient
 
-            state = os.environ.get(constants.DEMO_STATE_ENV_VAR, "")
-            return FakeClockifyClient(
-                offline=(state == "offline"), auth_error=(state == "auth-error")
-            )
+            client = getattr(self, "_demo_client", None)
+            if client is None:
+                state = os.environ.get(constants.DEMO_STATE_ENV_VAR, "")
+                client = FakeClockifyClient(
+                    offline=(state == "offline"), auth_error=(state == "auth-error")
+                )
+                self._demo_client = client
+            return client
         return self.context.account_service.get_client(self.context.config)
 
     # -- timer banner ---------------------------------------------------------------

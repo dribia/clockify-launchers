@@ -33,13 +33,13 @@ capture_one() {
         set -e
         '"$PYTHON"' -m clockify_launchers gui &
         APP_PID=$!
-        for i in $(seq 1 100); do
+        for i in $(seq 1 300); do
           [ -f "'"$ready"'" ] && break
           sleep 0.2
         done
         [ -f "'"$ready"'" ] || { echo "app never became ready"; kill $APP_PID; exit 1; }
-        sleep 1.5
-        WIN_ID=$(xdotool search --sync --onlyvisible --class clockify | head -1 || true)
+        sleep 2
+        WIN_ID=$(xdotool search --sync --name "Clockify Launchers" | head -1 || true)
         if [ -z "$WIN_ID" ]; then WIN_ID=$(xdotool search --onlyvisible "" | tail -1); fi
         import -window "$WIN_ID" "'"$OUT_DIR/$state$suffix.png"'"
         kill $APP_PID 2>/dev/null || true

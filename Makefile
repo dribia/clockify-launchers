@@ -58,7 +58,7 @@ deb:
 	scripts/build-deb.sh
 
 lintian:
-	lintian --fail-on error ../dribia-clockify-launchers_*.deb || lintian --fail-on error dist/deb/*.deb
+	lintian --fail-on error dist/deb/*.deb
 
 smoke-install:
 	scripts/smoke-install.sh

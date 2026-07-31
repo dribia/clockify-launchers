@@ -57,7 +57,9 @@ class Database:
         self._path = str(path)
         if self._path != ":memory:":
             Path(self._path).parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(self._path)
+        # sqlite3.threadsafety is 3 (serialized) on supported platforms; the
+        # UI submits work to a bounded executor, so cross-thread use is safe.
+        self._conn = sqlite3.connect(self._path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON")
         self._conn.execute("PRAGMA busy_timeout = 5000")
