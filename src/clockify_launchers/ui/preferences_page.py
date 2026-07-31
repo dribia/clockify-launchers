@@ -6,7 +6,7 @@ import logging
 from dataclasses import replace
 from typing import TYPE_CHECKING
 
-from gi.repository import Adw, Gtk
+from gi.repository import Adw, GLib, Gtk
 
 from clockify_launchers.domain.models import ManagementMode
 
@@ -69,12 +69,6 @@ class PreferencesPage(Adw.PreferencesPage):
         self.max_row = self._spin_row(
             automation, "Maximum automatic launchers", config.policy.max_auto_launchers, 1, 100
         )
-        apply_button = Gtk.Button(label="Apply automation settings", halign=Gtk.Align.END)
-        apply_button.add_css_class("suggested-action")
-        apply_button.connect("clicked", self._on_apply_policy)
-        apply_row = Adw.ActionRow(title="")
-        apply_row.add_suffix(apply_button)
-        automation.add(apply_row)
         self.add(automation)
 
         # Notifications
@@ -89,6 +83,19 @@ class PreferencesPage(Adw.PreferencesPage):
             notifications, "Background additions summary", config.notifications.background_additions
         )
         self.add(notifications)
+
+        # Auto-save: settings persist on every modification (debounced).
+        self._save_timeout_id: int = 0
+        for spin in (
+            self.interval_row,
+            self.lookback_row,
+            self.stale_row,
+            self.grace_row,
+            self.max_row,
+        ):
+            spin.connect("notify::value", self._on_setting_changed)
+        for switch in (self.notif_success, self.notif_failure, self.notif_additions):
+            switch.connect("notify::active", self._on_setting_changed)
 
         # Maintenance
         maintenance = Adw.PreferencesGroup(title="Maintenance")
@@ -154,7 +161,14 @@ class PreferencesPage(Adw.PreferencesPage):
         self.window.toast(f"Management mode set to {mode.value.capitalize()}.")
         self.window._update_status_bar()
 
-    def _on_apply_policy(self, _button: Gtk.Button) -> None:
+    def _on_setting_changed(self, *_args: object) -> None:
+        """Debounce rapid spin clicks, then persist automatically."""
+        if self._save_timeout_id:
+            GLib.source_remove(self._save_timeout_id)
+        self._save_timeout_id = GLib.timeout_add(600, self._save_settings)
+
+    def _save_settings(self) -> bool:
+        self._save_timeout_id = 0
         config = self.context.config
         config.policy = replace(
             config.policy,
@@ -171,6 +185,7 @@ class PreferencesPage(Adw.PreferencesPage):
         if config.management_mode is not ManagementMode.MANUAL:
             self.context.systemd.apply_interval(config.policy.sync_interval_minutes)
         self.window.toast("Settings saved.")
+        return False
 
     def _on_change_key(self, _button: Gtk.Button) -> None:
         from clockify_launchers.ui.onboarding import ConnectDialog

@@ -49,3 +49,10 @@ Minor notes (accepted, non-material):
 - Preferences "Apply automation settings" row has an empty title cell; cosmetic only.
 
 No clipping, overlap, contrast, or scroll defects found. No fixes required.
+
+## 2026-07-31 - Preferences auto-save
+
+Removed the "Apply automation settings" button; automation and notification
+settings now persist automatically on modification (600 ms debounce, single
+"Settings saved." toast, systemd interval drop-in refreshed). Re-captured
+preferences at both sizes: layout clean, no empty action row remains.
