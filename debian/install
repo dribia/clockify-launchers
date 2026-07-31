@@ -1,0 +1,5 @@
+data/com.dribia.ClockifyLaunchers.desktop usr/share/applications/
+data/com.dribia.ClockifyLaunchers.metainfo.xml usr/share/metainfo/
+data/icons/hicolor/scalable/apps/com.dribia.ClockifyLaunchers.svg usr/share/icons/hicolor/scalable/apps/
+data/systemd/clockify-launchers-sync.service usr/lib/systemd/user/
+data/systemd/clockify-launchers-sync.timer usr/lib/systemd/user/

@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clockify-launchers"
+version = "0.1.0"
+description = "Create and maintain Ubuntu application launchers that start Clockify timers"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Dribia" }]
+# PyGObject (python3-gi) is a system dependency provided by the distribution;
+# it is intentionally not a pip dependency (see debian/control).
+dependencies = [
+    "httpx>=0.27",
+]
+
+[project.scripts]
+clockify-launchers = "clockify_launchers.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "ruff>=0.6",
+    "ty",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"clockify_launchers.resources" = ["*.gresource", "*.gresource.xml", "ui/*.ui", "css/*.css", "icons/**/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF", "S", "PL"]
+ignore = [
+    "S101",    # assert in tests is fine; kept globally simple
+    "PLR0913", # many-args in service constructors
+    "PLR2004", # magic values in domain thresholds are documented constants
+    "PLR0911", # domain guard functions intentionally return early per rule
+    "PLR0912",
+    "PLR0915",
+    "PLR0917",
+    "PLC0415", # lazy imports keep GTK out of headless code paths
+    "SIM108",  # ternary preference
+    "E501",    # long strings in user-facing text; format handles code lines
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "PLR", "SIM117"]
+"src/clockify_launchers/ui/**" = ["PLR0915"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "live: opt-in tests that contact the real Clockify API (skipped by default)",
+    "ui: AT-SPI GUI tests requiring a display",
+]
+
+[tool.ty.src]
+include = ["src"]
+
+[tool.ty.environment]
+python-version = "3.12"

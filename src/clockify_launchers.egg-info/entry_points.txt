@@ -1,0 +1,2 @@
+[console_scripts]
+clockify-launchers = clockify_launchers.cli:main

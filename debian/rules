@@ -1,0 +1,11 @@
+#!/usr/bin/make -f
+export PYBUILD_NAME=clockify-launchers
+
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_auto_test:
+	# Tests require GTK/libadwaita introspection; run separately via `make verify`.
+
+execute_after_dh_auto_install:
+	desktop-file-validate data/com.dribia.ClockifyLaunchers.desktop

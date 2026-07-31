@@ -1,0 +1,32 @@
+Source: dribia-clockify-launchers
+Section: utils
+Priority: optional
+Maintainer: Dribia <dev@dribia.com>
+Build-Depends: debhelper-compat (= 13),
+               dh-sequence-python3,
+               pybuild-plugin-pyproject,
+               python3-all,
+               python3-setuptools,
+               desktop-file-utils,
+               appstream,
+Standards-Version: 4.6.2
+Homepage: https://github.com/dribia/clockify-launchers
+Rules-Requires-Root: no
+
+Package: dribia-clockify-launchers
+Architecture: all
+Depends: ${python3:Depends},
+         ${misc:Depends},
+         python3-gi,
+         gir1.2-gtk-4.0,
+         gir1.2-adw-1,
+         gir1.2-secret-1,
+         python3-httpx,
+Recommends: gnome-keyring
+Description: Ubuntu launchers that start Clockify timers
+ Clockify Launchers creates and maintains per-user application launchers
+ that start Clockify timers. Launchers appear in the GNOME application
+ grid; clicking one starts or switches the current timer. Optional
+ Assisted and Autopilot modes keep the launcher set aligned with recent
+ Clockify activity, conservatively and restorably. The API key is stored
+ only in the system keyring.

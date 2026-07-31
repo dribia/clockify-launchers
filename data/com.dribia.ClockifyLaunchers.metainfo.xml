@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.dribia.ClockifyLaunchers</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Clockify Launchers</name>
+  <summary>Create Ubuntu launchers that start Clockify timers</summary>
+  <description>
+    <p>
+      Clockify Launchers turns your recurring Clockify workflow into a native
+      Ubuntu experience. Create application launchers from Clockify projects,
+      tasks, and tags; clicking a launcher starts or switches the current
+      timer. Optional Assisted and Autopilot modes keep the launcher set
+      aligned with your recent activity, always conservatively and always
+      restorably.
+    </p>
+    <p>
+      Your Clockify API key is stored only in the system keyring. The
+      application never edits or deletes launchers it does not own.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.dribia.ClockifyLaunchers.desktop</launchable>
+  <url type="homepage">https://github.com/dribia/clockify-launchers</url>
+  <developer id="com.dribia">
+    <name>Dribia</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <categories>
+    <category>Office</category>
+    <category>Utility</category>
+  </categories>
+  <provides>
+    <binary>clockify-launchers</binary>
+  </provides>
+  <releases>
+    <release version="0.1.0" date="2026-07-31">
+      <description>
+        <p>Initial release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

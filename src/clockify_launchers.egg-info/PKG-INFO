@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: clockify-launchers
+Version: 0.1.0
+Summary: Create and maintain Ubuntu application launchers that start Clockify timers
+Author: Dribia
+License: MIT
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: httpx>=0.27
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Requires-Dist: pytest-cov>=5; extra == "dev"
+Requires-Dist: ruff>=0.6; extra == "dev"
+Requires-Dist: ty; extra == "dev"
+Dynamic: license-file

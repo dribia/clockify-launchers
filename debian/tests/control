@@ -1,0 +1,2 @@
+Test-Command: clockify-launchers --version
+Depends: dribia-clockify-launchers

@@ -1,0 +1,7 @@
+[Unit]
+Description=Synchronize Clockify launchers
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/clockify-launchers sync --background
