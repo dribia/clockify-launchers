@@ -119,11 +119,24 @@ class OnboardingWindow(Adw.ApplicationWindow):
         page = Adw.PreferencesPage()
         group = Adw.PreferencesGroup(
             title="Connect Clockify",
-            description="Find your API key in Clockify under Profile settings.",
+            description=(
+                "The key is stored in your system keyring and never leaves this "
+                "machine except to Clockify."
+            ),
         )
         self.region_row = Adw.ComboRow(title="API region")
         self.region_row.set_model(Gtk.StringList.new([label for label, _ in _REGIONS]))
         group.add(self.region_row)
+        key_help_row = Adw.ActionRow(
+            title="Get your API key",
+            subtitle="Generate or copy it in Clockify under Profile settings, Advanced",
+        )
+        open_settings = Gtk.Button(label="Open Clockify settings", valign=Gtk.Align.CENTER)
+        open_settings.set_tooltip_text("Opens the Clockify profile settings page in your browser")
+        open_settings.connect("clicked", self._on_open_key_settings)
+        key_help_row.add_suffix(open_settings)
+        key_help_row.set_activatable_widget(open_settings)
+        group.add(key_help_row)
         self.key_row = Adw.PasswordEntryRow(title="Clockify API key")
         group.add(self.key_row)
         page.add(group)
@@ -142,6 +155,10 @@ class OnboardingWindow(Adw.ApplicationWindow):
         verify_group.add(row)
         page.add(verify_group)
         return self._page("connect", "Connect Clockify", page)
+
+    def _on_open_key_settings(self, _button: Gtk.Button) -> None:
+        launcher = Gtk.UriLauncher(uri=constants.API_KEY_SETTINGS_URL)
+        launcher.launch(self, None, None)
 
     def _on_verify(self, _button: Gtk.Button) -> None:
         api_key = self.key_row.get_text().strip()
@@ -286,7 +303,28 @@ class ConnectDialog(Adw.Dialog):
         toolbar = Adw.ToolbarView()
         toolbar.add_top_bar(Adw.HeaderBar())
         page = Adw.PreferencesPage()
-        group = Adw.PreferencesGroup(title="Clockify API key")
+        group = Adw.PreferencesGroup(
+            title="Clockify API key",
+            description=(
+                "The key is stored in your system keyring and never leaves this "
+                "machine except to Clockify."
+            ),
+        )
+        key_help_row = Adw.ActionRow(
+            title="Get your API key",
+            subtitle="Generate or copy it in Clockify under Profile settings, Advanced",
+        )
+        open_settings = Gtk.Button(label="Open Clockify settings", valign=Gtk.Align.CENTER)
+        open_settings.set_tooltip_text("Opens the Clockify profile settings page in your browser")
+        open_settings.connect(
+            "clicked",
+            lambda *_a: Gtk.UriLauncher(uri=constants.API_KEY_SETTINGS_URL).launch(
+                self.window, None, None
+            ),
+        )
+        key_help_row.add_suffix(open_settings)
+        key_help_row.set_activatable_widget(open_settings)
+        group.add(key_help_row)
         self.key_row = Adw.PasswordEntryRow(title="New API key")
         group.add(self.key_row)
         self.status = Gtk.Label(label="", wrap=True)

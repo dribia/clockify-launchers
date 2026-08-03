@@ -56,3 +56,15 @@ Removed the "Apply automation settings" button; automation and notification
 settings now persist automatically on modification (600 ms debounce, single
 "Settings saved." toast, systemd interval drop-in refreshed). Re-captured
 preferences at both sizes: layout clean, no empty action row remains.
+
+## 2026-08-03 - Onboarding API-key shortcut
+
+Connect page now shows a "Get your API key" row with an "Open Clockify
+settings" button (launches the browser at the profile Advanced section) and
+keyring reassurance text in the group description; same additions in the
+Change API key dialog. Re-captured onboarding-key: layout clean, clear
+hierarchy, button reachable by keyboard (activatable row).
+
+Also hardened the capture harness: target PNG is deleted before capture (a
+stale file can no longer pass plausibility checks) and window capture retries
+up to five times.

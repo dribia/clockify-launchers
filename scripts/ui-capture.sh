@@ -12,6 +12,7 @@ NARROW_STATES="launchers-populated onboarding-welcome preferences suggestions-re
 capture_one() {
   local state="$1" width="$2" height="$3" suffix="$4"
   local tmp_root ready pid
+  rm -f "$OUT_DIR/$state$suffix.png"  # never validate a stale capture
   tmp_root="$(mktemp -d /tmp/clockify-launchers-cap.XXXXXX)"
   ready="$tmp_root/ready"
   (
@@ -39,9 +40,17 @@ capture_one() {
         done
         [ -f "'"$ready"'" ] || { echo "app never became ready"; kill $APP_PID; exit 1; }
         sleep 2
-        WIN_ID=$(xdotool search --sync --name "Clockify Launchers" | head -1 || true)
+        WIN_ID=$(xdotool search --sync --onlyvisible --name "Clockify Launchers" | head -1 || true)
         if [ -z "$WIN_ID" ]; then WIN_ID=$(xdotool search --onlyvisible "" | tail -1); fi
-        import -window "$WIN_ID" "'"$OUT_DIR/$state$suffix.png"'"
+        CAPTURED=0
+        for attempt in 1 2 3 4 5; do
+          if import -window "$WIN_ID" "'"$OUT_DIR/$state$suffix.png"'" 2>/dev/null; then
+            CAPTURED=1; break
+          fi
+          sleep 2
+          WIN_ID=$(xdotool search --onlyvisible --name "Clockify Launchers" | head -1 || echo "$WIN_ID")
+        done
+        [ "$CAPTURED" = 1 ] || { echo "could not capture window"; kill $APP_PID; exit 1; }
         kill $APP_PID 2>/dev/null || true
       '
   )

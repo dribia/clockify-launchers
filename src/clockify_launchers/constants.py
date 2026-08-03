@@ -27,6 +27,8 @@ CONFIG_DIR_NAME = "clockify-launchers"
 DATA_DIR_NAME = "clockify-launchers"
 
 DEFAULT_API_BASE_URL = "https://api.clockify.me/api"
+# Where users generate their personal API key (Profile settings -> Advanced).
+API_KEY_SETTINGS_URL = "https://app.clockify.me/user/preferences#advanced"
 KNOWN_REGION_PREFIXES = ("euc1", "use2", "euw2", "apse2")
 
 SECRET_SCHEMA_NAME = "com.dribia.ClockifyLaunchers.ApiKey"  # noqa: S105 - attribute name, not a secret
