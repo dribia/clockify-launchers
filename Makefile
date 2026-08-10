@@ -10,6 +10,8 @@ STATES := onboarding-welcome onboarding-key onboarding-workspace onboarding-mode
 bootstrap:
 	$(UV) venv --python /usr/bin/python3.12 --system-site-packages .venv
 	$(UV) pip install -e ".[dev]"
+	# GTK/libadwaita type stubs; --no-deps avoids building pycairo from source.
+	$(UV) pip install --no-deps pygobject-stubs
 	@echo "System packages needed (install with sudo apt-get install):"
 	@echo "  python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-secret-1"
 	@echo "  xvfb dbus-x11 xdotool imagemagick python3-dogtail at-spi2-core"
