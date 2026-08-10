@@ -53,46 +53,27 @@ GitHub release.
 
 ### One-time GCP setup
 
-```bash
-PROJECT_ID=dribia-infra          # adjust
-LOCATION=europe-southwest1       # adjust
-REPO=clockify-launchers-apt
-GITHUB_REPO=dribia/clockify-launchers
+The GCP resources are managed with Terraform in the
+`dribia-tools-infrastructure` repository (project `dribia-tools`):
 
-# 1. APT repository (Artifact Registry signs Release files itself).
-gcloud artifacts repositories create "$REPO" \
-  --project="$PROJECT_ID" --location="$LOCATION" \
-  --repository-format=apt --description="Clockify Launchers APT repo"
+- `modules/google-artifact-registry`: APT repository `dribia-apt` in
+  `europe-west1`.
+- `modules/google-service-accounts`: `apt-publisher-sa` service account.
+- `modules/google-iam`: `artifactregistry.writer` on the APT repo for the
+  publisher, and a `workloadIdentityUser` binding on the existing GitHub
+  Actions identity pool (owner-scoped to the `dribia` GitHub organization).
 
-# 2. Publisher service account.
-gcloud iam service-accounts create apt-publisher --project="$PROJECT_ID"
-gcloud artifacts repositories add-iam-policy-binding "$REPO" \
-  --project="$PROJECT_ID" --location="$LOCATION" \
-  --member="serviceAccount:apt-publisher@$PROJECT_ID.iam.gserviceaccount.com" \
-  --role="roles/artifactregistry.writer"
-
-# 3. Workload Identity Federation for GitHub Actions (no stored keys).
-gcloud iam workload-identity-pools create github --project="$PROJECT_ID" \
-  --location=global --display-name="GitHub Actions"
-gcloud iam workload-identity-pools providers create-oidc github-oidc \
-  --project="$PROJECT_ID" --location=global --workload-identity-pool=github \
-  --issuer-uri="https://token.actions.githubusercontent.com" \
-  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
-  --attribute-condition="assertion.repository == '$GITHUB_REPO'"
-POOL_NAME=$(gcloud iam workload-identity-pools describe github \
-  --project="$PROJECT_ID" --location=global --format='value(name)')
-gcloud iam service-accounts add-iam-policy-binding \
-  "apt-publisher@$PROJECT_ID.iam.gserviceaccount.com" \
-  --project="$PROJECT_ID" --role="roles/iam.workloadIdentityUser" \
-  --member="principalSet://iam.googleapis.com/$POOL_NAME/attribute.repository/$GITHUB_REPO"
-echo "GCP_WIF_PROVIDER=$POOL_NAME/providers/github-oidc"
-```
+Run `terraform plan` / `terraform apply` there. The
+`google_ci_identity_pool_provider_name` output is the value for the
+`GCP_WIF_PROVIDER` GitHub secret;
+`apt-publisher-sa@dribia-tools.iam.gserviceaccount.com` is the value for
+`GCP_SERVICE_ACCOUNT`.
 
 Then set GitHub Actions configuration:
 
-- Variables: `GCP_PROJECT_ID`, `GAR_LOCATION`, `GAR_APT_REPOSITORY`.
-- Secrets: `GCP_WIF_PROVIDER` (printed above), `GCP_SERVICE_ACCOUNT`
-  (`apt-publisher@$PROJECT_ID.iam.gserviceaccount.com`).
+- Variables: `GCP_PROJECT_ID=dribia-tools`, `GAR_LOCATION=europe-west1`, `GAR_APT_REPOSITORY=dribia-apt`.
+- Secrets: `GCP_WIF_PROVIDER` (Terraform output), `GCP_SERVICE_ACCOUNT`
+  (`apt-publisher-sa@dribia-tools.iam.gserviceaccount.com`).
 - Optionally protect the `production` environment with required reviewers;
   the publish job runs in it.
 
@@ -111,18 +92,17 @@ credentials; for machines with gcloud user credentials:
 
 ```bash
 sudo apt-get install -y apt-transport-artifact-registry
-echo "deb ar+https://LOCATION-apt.pkg.dev/projects/PROJECT_ID REPO main" | \
+echo "deb ar+https://europe-west1-apt.pkg.dev/projects/dribia-tools dribia-apt main" | \
   sudo tee /etc/apt/sources.list.d/clockify-launchers.list
 sudo apt-get update
 sudo apt-get install dribia-clockify-launchers
 ```
 
-Replace `LOCATION`, `PROJECT_ID`, and `REPO`. The
-`apt-transport-artifact-registry` package (from Google's
+The `apt-transport-artifact-registry` package (from Google's
 `apt.pkg.dev` bootstrap repo, see
 https://cloud.google.com/artifact-registry/docs/os-packages/debian/configure)
 authenticates apt with the machine's gcloud or service-account credentials.
 If the repository is made public instead, the standard `deb
-https://LOCATION-apt.pkg.dev/projects/PROJECT_ID REPO main` line works with
-the signing key from
-`https://LOCATION-apt.pkg.dev/projects/PROJECT_ID/repos/REPO/gpg`.
+https://europe-west1-apt.pkg.dev/projects/dribia-tools dribia-apt main` line
+works with the signing key from
+`https://europe-west1-apt.pkg.dev/projects/dribia-tools/repos/dribia-apt/gpg`.

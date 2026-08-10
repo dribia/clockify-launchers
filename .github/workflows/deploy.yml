@@ -6,15 +6,18 @@ name: Deploy
 #
 # Required repository configuration (Settings -> Secrets and variables -> Actions):
 #   Variables:
-#     GCP_PROJECT_ID       e.g. dribia-infra
-#     GAR_LOCATION         e.g. europe-southwest1
-#     GAR_APT_REPOSITORY   e.g. clockify-launchers-apt
+#     GCP_PROJECT_ID       dribia-tools
+#     GAR_LOCATION         europe-west1
+#     GAR_APT_REPOSITORY   dribia-apt
 #   Secrets:
-#     GCP_WIF_PROVIDER         full workload identity provider resource name,
-#                              projects/NUM/locations/global/workloadIdentityPools/POOL/providers/PROVIDER
-#     GCP_SERVICE_ACCOUNT      e.g. apt-publisher@dribia-infra.iam.gserviceaccount.com
+#     GCP_WIF_PROVIDER         workload identity provider resource name; take it from
+#                              the dribia-tools-infrastructure Terraform output
+#                              `google_ci_identity_pool_provider_name`
+#     GCP_SERVICE_ACCOUNT      apt-publisher-sa@dribia-tools.iam.gserviceaccount.com
 #
-# One-time GCP setup is documented in docs/releasing.md.
+# The GCP resources are managed in the dribia-tools-infrastructure Terraform
+# repository (APT repo, publisher service account, WIF bindings). See
+# docs/releasing.md.
 
 on:
   push:
