@@ -5,15 +5,14 @@ name: Deploy
 # Identity Federation: no service-account keys are stored in the repository.
 #
 # Required repository configuration (Settings -> Secrets and variables -> Actions):
-#   Variables:
-#     GCP_PROJECT_ID       dribia-tools
-#     GAR_LOCATION         europe-west1
-#     GAR_APT_REPOSITORY   dribia-apt
-#   Secrets:
-#     GCP_WIF_PROVIDER         workload identity provider resource name; take it from
-#                              the dribia-tools-infrastructure Terraform output
-#                              `google_ci_identity_pool_provider_name`
-#     GCP_SERVICE_ACCOUNT      apt-publisher-sa@dribia-tools.iam.gserviceaccount.com
+#   Variables (repository-level unless noted):
+#     GCP_PROJECT_ID                    dribia-tools
+#     GAR_LOCATION                      europe-west1
+#     GAR_APT_REPOSITORY                dribia-apt
+#     GCP_WORKLOAD_IDENTITY_PROVIDER    org-wide variable; the workload identity
+#                                       provider resource name (Terraform output
+#                                       `google_ci_identity_pool_provider_name`)
+#     GCP_APT_PUBLISHER_SERVICE_ACCOUNT apt-publisher-sa@dribia-tools.iam.gserviceaccount.com
 #
 # The GCP resources are managed in the dribia-tools-infrastructure Terraform
 # repository (APT repo, publisher service account, WIF bindings). See
@@ -79,8 +78,8 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_APT_PUBLISHER_SERVICE_ACCOUNT }}
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2

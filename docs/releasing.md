@@ -64,16 +64,18 @@ The GCP resources are managed with Terraform in the
   Actions identity pool (owner-scoped to the `dribia` GitHub organization).
 
 Run `terraform plan` / `terraform apply` there. The
-`google_ci_identity_pool_provider_name` output is the value for the
-`GCP_WIF_PROVIDER` GitHub secret;
-`apt-publisher-sa@dribia-tools.iam.gserviceaccount.com` is the value for
-`GCP_SERVICE_ACCOUNT`.
+`google_ci_identity_pool_provider_name` output matches the org-wide GitHub
+variable `GCP_WORKLOAD_IDENTITY_PROVIDER`;
+`apt-publisher-sa@dribia-tools.iam.gserviceaccount.com` is the value for the
+`GCP_APT_PUBLISHER_SERVICE_ACCOUNT` variable.
 
 Then set GitHub Actions configuration:
 
-- Variables: `GCP_PROJECT_ID=dribia-tools`, `GAR_LOCATION=europe-west1`, `GAR_APT_REPOSITORY=dribia-apt`.
-- Secrets: `GCP_WIF_PROVIDER` (Terraform output), `GCP_SERVICE_ACCOUNT`
-  (`apt-publisher-sa@dribia-tools.iam.gserviceaccount.com`).
+- Variables: `GCP_PROJECT_ID=dribia-tools`, `GAR_LOCATION=europe-west1`,
+  `GAR_APT_REPOSITORY=dribia-apt`,
+  `GCP_APT_PUBLISHER_SERVICE_ACCOUNT=apt-publisher-sa@dribia-tools.iam.gserviceaccount.com`,
+  plus the org-wide `GCP_WORKLOAD_IDENTITY_PROVIDER`.
+- No secrets are required; authentication uses OIDC.
 - Optionally protect the `production` environment with required reviewers;
   the publish job runs in it.
 
