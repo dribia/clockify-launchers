@@ -14,3 +14,4 @@ debian/files
 debian/debhelper-build-stamp
 debian/*.substvars
 .env
+.pybuild/
