@@ -21,4 +21,7 @@ export ADW_DISABLE_PORTAL=1
 export GTK_ENABLE_ANIMATIONS=0
 
 exec xvfb-run --auto-servernum --server-args="-screen 0 1280x900x24" \
-  dbus-run-session -- "$@"
+  dbus-run-session -- bash -c '
+    # dogtail refuses to run unless toolkit accessibility is enabled in the session.
+    gsettings set org.gnome.desktop.interface toolkit-accessibility true 2>/dev/null || true
+    exec "$@"' _ "$@"
