@@ -16,7 +16,60 @@ Key features:
 
 ## Install
 
-### Debian package
+### From the Dribia APT repository (recommended)
+
+Packages are published to a private Google Artifact Registry repository.
+You need a Google account with read access to the `dribia-tools` project
+(any Dribia account works) and the `gcloud` CLI installed.
+
+**1. Install Google's Artifact Registry apt transport** (one time):
+
+```sh
+curl -fsSL https://us-apt.pkg.dev/doc/repo-signing-key.gpg | \
+  sudo gpg --dearmor -o /usr/share/keyrings/ar-transport.gpg
+echo "deb [signed-by=/usr/share/keyrings/ar-transport.gpg] https://packages.cloud.google.com/apt apt-transport-artifact-registry-stable main" | \
+  sudo tee /etc/apt/sources.list.d/ar-transport.list
+sudo apt update
+sudo apt install -y apt-transport-artifact-registry
+```
+
+**2. Add the Dribia repository** (note the `ar+https` scheme; it tells apt
+to authenticate through the transport installed above):
+
+```sh
+echo "deb ar+https://europe-west1-apt.pkg.dev/projects/dribia-tools dribia-apt main" | \
+  sudo tee /etc/apt/sources.list.d/dribia.list
+```
+
+**3. Provide Google credentials.** The transport uses the machine's
+[Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials):
+
+```sh
+gcloud auth application-default login
+```
+
+Log in with your Dribia Google account. This is needed once; the credential
+refreshes itself afterwards.
+
+**4. Install and stay updated:**
+
+```sh
+sudo apt update
+sudo apt install dribia-clockify-launchers
+```
+
+New releases arrive through regular `apt upgrade`.
+
+Troubleshooting:
+
+- `apt update` fails with `401`/`403` on the Dribia repository: run
+  `gcloud auth application-default login` again, and check your account can
+  read Artifact Registry in `dribia-tools`
+  (`roles/artifactregistry.reader`).
+- `E: The method driver /usr/lib/apt/methods/ar+https could not be found`:
+  step 1 (the transport package) is missing.
+
+### From a local build
 
 ```sh
 make deb
