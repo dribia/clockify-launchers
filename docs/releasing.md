@@ -81,11 +81,22 @@ Then set GitHub Actions configuration:
 
 ### Releasing a version
 
-1. Bump the version in `src/clockify_launchers/constants.py`,
-   `pyproject.toml`, `data/com.dribia.ClockifyLaunchers.metainfo.xml`, and
-   add a `debian/changelog` entry (`dch -v X.Y.Z-1`).
-2. `make verify`, commit, and tag: `git tag vX.Y.Z && git push --tags`.
-3. The Deploy workflow publishes the package and the GitHub release.
+The release flow follows the Dribia convention (see dribia/tank):
+
+1. Run the **bump** workflow from the Actions tab (choose major/minor/patch).
+   It updates all four version locations (`pyproject.toml`,
+   `constants.py`, `debian/changelog`, `metainfo.xml`) via
+   `scripts/bump-version.py` and opens a ":label: Version bump to vX.Y.Z"
+   pull request. (`make bump VERSION=...` does the same locally.)
+2. Review and merge the PR. On merge, the **release** workflow creates a
+   **draft GitHub release** tagged `vX.Y.Z`.
+3. Review and **publish** the draft release. Publishing triggers the
+   **Deploy** workflow, which builds the `.deb`, verifies version
+   consistency, runs lintian, uploads to the `dribia-apt` Artifact Registry
+   repository, and attaches the `.deb` to the release.
+
+Deploy cannot be triggered manually; publishing a release is the only
+trigger.
 
 ### Installing from the repository (user machines)
 

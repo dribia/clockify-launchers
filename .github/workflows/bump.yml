@@ -1,0 +1,48 @@
+name: bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+        type: choice
+        options:
+          - 'major'
+          - 'minor'
+          - 'patch'
+        default: 'patch'
+
+jobs:
+  create-bump-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'write'
+      pull-requests: 'write'
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set git user
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+      - name: Bump version
+        id: bump
+        run: |
+          NEW_VERSION=$(python3 scripts/bump-version.py "${{ github.event.inputs.version }}")
+          echo "new-version=v$NEW_VERSION" >> "$GITHUB_OUTPUT"
+      - name: Generate token for release bot
+        uses: actions/create-github-app-token@v2
+        id: generate-token
+        with:
+          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_APP_PRIVATE_KEY }}
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          commit-message: ":label: Version bump to ${{ steps.bump.outputs.new-version }}"
+          base: ${{ github.ref_name }}
+          branch: release/${{ steps.bump.outputs.new-version }}-merge
+          delete-branch: true
+          title: ":label: Version bump to ${{ steps.bump.outputs.new-version }}"
+          reviewers: ${{ github.actor }}

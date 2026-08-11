@@ -74,3 +74,7 @@ verify: lint typecheck test validate-data ui-capture ui-test deb
 clean:
 	rm -rf artifacts dist build .pytest_cache .ruff_cache
 	find . -name __pycache__ -type d -not -path './.venv/*' -exec rm -rf {} + 2>/dev/null || true
+
+bump:
+	@test -n "$(VERSION)" || { echo "usage: make bump VERSION={major|minor|patch|X.Y.Z}"; exit 2; }
+	python3 scripts/bump-version.py $(VERSION)
