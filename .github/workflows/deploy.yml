@@ -38,7 +38,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            debhelper dh-python pybuild-plugin-pyproject \
+            build-essential debhelper dh-python pybuild-plugin-pyproject \
             python3-all python3-setuptools desktop-file-utils appstream lintian
 
       - name: Check version consistency

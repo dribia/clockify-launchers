@@ -18,7 +18,7 @@ jobs:
             python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-secret-1 \
             xvfb dbus-x11 xdotool imagemagick python3-dogtail at-spi2-core \
             desktop-file-utils appstream lintian \
-            debhelper dh-python pybuild-plugin-pyproject \
+            build-essential debhelper dh-python pybuild-plugin-pyproject \
             libglib2.0-bin devscripts python3-all python3-setuptools
 
       - name: Install uv
