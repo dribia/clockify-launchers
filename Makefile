@@ -53,6 +53,7 @@ ui-review: ui-capture
 
 validate-data:
 	desktop-file-validate data/com.dribia.ClockifyLaunchers.desktop
+	desktop-file-validate data/com.dribia.ClockifyLaunchers.stop.desktop
 	appstreamcli validate --no-net data/com.dribia.ClockifyLaunchers.metainfo.xml || \
 		appstream-util validate-relax data/com.dribia.ClockifyLaunchers.metainfo.xml
 

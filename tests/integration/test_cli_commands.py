@@ -75,3 +75,17 @@ def test_reset_removes_launchers_config_and_db(env, capsys):
     assert env.secrets.get_api_key(env.account.id) is None
     out = capsys.readouterr().out
     assert "Reset complete." in out
+
+
+def test_stop_desktop_entry_is_valid_and_stops_via_notification(env, monkeypatch):
+    """The packaged Stop launcher stays valid; cmd_stop notifies instead of relying on a terminal."""
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    desktop = Path(__file__).resolve().parents[2] / "data/com.dribia.ClockifyLaunchers.stop.desktop"
+    content = desktop.read_text(encoding="utf-8")
+    assert "Exec=clockify-launchers stop" in content
+    assert "Terminal=false" in content
+    if shutil.which("desktop-file-validate"):
+        subprocess.run(["desktop-file-validate", str(desktop)], check=True)

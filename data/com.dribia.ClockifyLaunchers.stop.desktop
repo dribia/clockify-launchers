@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Stop Clockify timer
+Comment=Stop tracking the current Clockify time entry, if any
+Exec=clockify-launchers stop
+TryExec=clockify-launchers
+Icon=com.dribia.ClockifyLaunchers.stop
+Terminal=false
+StartupNotify=false
+Categories=Office;Utility;
+Keywords=Clockify;Time tracking;Stop;Timer;

@@ -118,12 +118,15 @@ def cmd_start(context: AppContext, launcher_id: str) -> int:
 
 def cmd_stop(context: AppContext) -> int:
     config = context.config
+    notifications = context.notifications()
     if not (config.clockify_user_id and config.active_workspace_id):
+        notifications.timer_failure("Clockify Launchers is not configured yet.")
         print("error: not configured; run the GUI first", file=sys.stderr)
         return constants.EXIT_CONFIG_ERROR
     try:
         client = _client_for(context)
     except (SecretUnavailableError, ClockifyError) as exc:
+        notifications.timer_failure(f"Could not stop the timer: {exc}")
         print(f"error: {exc}", file=sys.stderr)
         return constants.EXIT_AUTH_ERROR
     service = TimerService(
@@ -135,7 +138,12 @@ def cmd_stop(context: AppContext) -> int:
     result = service.stop_current(config.active_workspace_id)
     print(result.message)
     if result.outcome is StartOutcome.FAILED:
+        notifications.timer_failure(result.message)
         return constants.EXIT_API_ERROR
+    if result.outcome is StartOutcome.NOOP:
+        notifications.timer_noop(result.message)
+    else:
+        notifications.timer_success(result.message)
     return constants.EXIT_OK
 
 
