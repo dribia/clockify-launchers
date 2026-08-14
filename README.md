@@ -33,23 +33,28 @@ sudo apt update
 sudo apt install -y apt-transport-artifact-registry
 ```
 
-**2. Add the Dribia repository** (note the `ar+https` scheme; it tells apt
-to authenticate through the transport installed above):
+**2. Add the Dribia repository and its signing key.** Artifact Registry
+repositories are signed with Google's generic signing key; the `ar+https`
+scheme routes the download through the authenticated transport from step 1:
 
 ```sh
-echo "deb ar+https://europe-west1-apt.pkg.dev/projects/dribia-tools dribia-apt main" | \
+curl -fsSL https://us-apt.pkg.dev/doc/repo-signing-key.gpg | \
+  sudo gpg --dearmor -o /usr/share/keyrings/dribia-apt.gpg
+echo "deb [signed-by=/usr/share/keyrings/dribia-apt.gpg] ar+https://europe-west1-apt.pkg.dev/projects/dribia-tools dribia-apt main" | \
   sudo tee /etc/apt/sources.list.d/dribia.list
 ```
 
-**3. Provide Google credentials.** The transport uses the machine's
-[Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials):
+**3. Provide Google credentials for root.** The apt transport runs under
+`sudo`, so the [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials)
+must exist for the root user (a plain `gcloud auth application-default login`
+stores them under your own user, where apt cannot see them):
 
 ```sh
-gcloud auth application-default login
+sudo gcloud auth application-default login
 ```
 
-Log in with your Dribia Google account. This is needed once; the credential
-refreshes itself afterwards.
+Log in with your Dribia Google account in the browser window that opens.
+This is needed once; the credential refreshes itself afterwards.
 
 **4. Install and stay updated:**
 
@@ -62,10 +67,15 @@ New releases arrive through regular `apt upgrade`.
 
 Troubleshooting:
 
-- `apt update` fails with `401`/`403` on the Dribia repository: run
-  `gcloud auth application-default login` again, and check your account can
-  read Artifact Registry in `dribia-tools`
-  (`roles/artifactregistry.reader`).
+- `failed to obtain default creds` during `apt update`: step 3 was skipped
+  or run without `sudo`; the credentials must belong to root.
+- `401`/`403` on the Dribia repository: your Google account lacks read
+  access to Artifact Registry in `dribia-tools`
+  (`roles/artifactregistry.reader`; granted to `tothom@dribia.com`).
+- `NO_PUBKEY C0BA5CE6DC6315A3` / `repository is not signed`: the signing key
+  from step 2 is missing, or the sources line lacks the `signed-by` option.
+  As a fallback the key can be fetched from a keyserver:
+  `sudo gpg --no-default-keyring --keyring /usr/share/keyrings/dribia-apt.gpg --keyserver keyserver.ubuntu.com --recv-keys C0BA5CE6DC6315A3`
 - `E: The method driver /usr/lib/apt/methods/ar+https could not be found`:
   step 1 (the transport package) is missing.
 
