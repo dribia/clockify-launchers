@@ -5,7 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - Unreleased
+## [Unreleased]
+
+### Added
+
+- Top-bar timer indicator (StatusNotifierItem + minimal com.canonical.dbusmenu)
+  showing the currently tracked project via the Ubuntu AppIndicators extension,
+  with an Open / Stop timer / Quit menu, automatic re-registration across
+  screen lock/unlock and shell restarts, and hide-to-indicator on window close
+  while the indicator is visible (ADR 0015).
+
+## [0.1.0] - 2026-08-11
 
 ### Added
 
@@ -29,8 +39,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deterministic demo backend with 13 UI states and a screenshot capture harness.
 - Debian packaging metadata (`debian/`), Makefile verification pipeline,
   and locally signed test APT repository script.
-- Top-bar timer indicator (StatusNotifierItem + minimal com.canonical.dbusmenu)
-  showing the currently tracked project via the Ubuntu AppIndicators extension,
-  with an Open / Stop timer / Quit menu, automatic re-registration across
-  screen lock/unlock and shell restarts, and hide-to-indicator on window close
-  while the indicator is visible (ADR 0015).
