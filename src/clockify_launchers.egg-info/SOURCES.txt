@@ -30,6 +30,7 @@ src/clockify_launchers/infrastructure/desktop_entries.py
 src/clockify_launchers/infrastructure/file_lock.py
 src/clockify_launchers/infrastructure/migrations.py
 src/clockify_launchers/infrastructure/secret_store.py
+src/clockify_launchers/infrastructure/status_notifier.py
 src/clockify_launchers/infrastructure/systemd.py
 src/clockify_launchers/infrastructure/xdg_paths.py
 src/clockify_launchers/services/__init__.py

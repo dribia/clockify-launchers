@@ -113,7 +113,7 @@ class MainWindow(Adw.ApplicationWindow):
         # Top-bar indicator. While it is visible in the top bar, closing the
         # window hides to the indicator instead of quitting (ADR 0015).
         self.indicator = TimerIndicator(
-            on_activate=self.present,
+            on_activate=self._present_and_refresh,
             on_stop=lambda: self._on_stop_timer(None),
             on_quit=self._quit_app,
             on_lost=self._on_indicator_lost,
@@ -122,7 +122,10 @@ class MainWindow(Adw.ApplicationWindow):
         self.connect("close-request", self._on_close_request)
 
         GLib.timeout_add_seconds(30, self._refresh_timer_banner_tick)
-        self._refresh_timer_banner()
+        # Refresh the current-timer state every time the window is shown,
+        # including the initial presentation and re-shows from the
+        # top-bar indicator after running hidden in the background.
+        self.connect("map", lambda *_: self.refresh_timer_now())
 
     # -- construction helpers ------------------------------------------------
 
@@ -214,6 +217,13 @@ class MainWindow(Adw.ApplicationWindow):
             return True
         self.indicator.unpublish()
         return False
+
+    def _present_and_refresh(self) -> None:
+        was_visible = self.get_visible()
+        self.present()
+        if was_visible:
+            # "map" does not fire when the window was already visible.
+            self.refresh_timer_now()
 
     def _quit_app(self) -> None:
         self.indicator.unpublish()
@@ -350,6 +360,15 @@ class MainWindow(Adw.ApplicationWindow):
         return self.context.account_service.get_client(self.context.config)
 
     # -- timer banner ---------------------------------------------------------------
+
+    def refresh_timer_now(self) -> None:
+        """Public entry point: re-query Clockify for the current timer.
+
+        Called on window show, on app re-activation, and remotely (via the
+        exported ``refresh-timer`` app action) by `start`/`stop` CLI runs so
+        the banner and top-bar indicator update immediately.
+        """
+        self._refresh_timer_banner()
 
     def _refresh_timer_banner_tick(self) -> bool:
         self._refresh_timer_banner()
