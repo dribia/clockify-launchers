@@ -69,9 +69,15 @@ Troubleshooting:
 
 - `failed to obtain default creds` during `apt update`: step 3 was skipped
   or run without `sudo`; the credentials must belong to root.
-- `401`/`403` on the Dribia repository: your Google account lacks read
-  access to Artifact Registry in `dribia-tools`
-  (`roles/artifactregistry.reader`; granted to `tothom@dribia.com`).
+- `does not have a Release file` on the Dribia repository: the transport
+  could not authenticate or is not authorized, and apt reports the failed
+  download generically. Check, in order: step 3 was done with `sudo`
+  (root ADC), you logged in with your `@dribia.com` Google account, and
+  that account can read Artifact Registry in `dribia-tools`
+  (`roles/artifactregistry.reader` is granted to the `dribia.com` domain
+  via Terraform in `dribia-tools-infrastructure`).
+- `401`/`403` on the Dribia repository: same causes as above; your Google
+  account lacks read access to Artifact Registry in `dribia-tools`.
 - `NO_PUBKEY C0BA5CE6DC6315A3` / `repository is not signed`: the signing key
   from step 2 is missing, or the sources line lacks the `signed-by` option.
   As a fallback the key can be fetched from a keyserver:
