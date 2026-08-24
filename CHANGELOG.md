@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The current-timer state (banner and top-bar indicator) now refreshes
+  immediately when the window is opened, re-presented from the background
+  indicator, or re-activated - not only on the 30-second poll.
+- `clockify-launchers start`/`stop` (what desktop launchers execute) now ping
+  a running GUI over D-Bus so the top-bar indicator updates instantly after
+  using a launcher instead of waiting for the next poll.
 - Stop timer: a lost/timed-out stop response is now reconciled by reading back
   the in-progress entry (success if the timer stopped, explicit ambiguous
   result otherwise) instead of always reporting a failure, mirroring the

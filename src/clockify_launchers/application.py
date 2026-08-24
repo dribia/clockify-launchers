@@ -46,9 +46,28 @@ class ClockifyLaunchersApp(Adw.Application):
         self._window: Adw.ApplicationWindow | None = None
         self.connect("activate", self._on_activate)
 
+        # Exported app action: lets the short-lived `start`/`stop` CLI
+        # processes (desktop launchers) tell a running GUI to refresh the
+        # timer banner and top-bar indicator immediately.
+        from clockify_launchers.infrastructure.app_bus import REFRESH_TIMER_ACTION
+
+        refresh_action = Gio.SimpleAction.new(REFRESH_TIMER_ACTION, None)
+        refresh_action.connect("activate", self._on_refresh_timer_action)
+        self.add_action(refresh_action)
+
+    def _on_refresh_timer_action(self, _action: Gio.SimpleAction, _param: object) -> None:
+        from clockify_launchers.ui.main_window import MainWindow
+
+        if isinstance(self._window, MainWindow):
+            self._window.refresh_timer_now()
+
     def _on_activate(self, _app: Adw.Application) -> None:
         if self._window is not None:
             self._window.present()
+            from clockify_launchers.ui.main_window import MainWindow
+
+            if isinstance(self._window, MainWindow):
+                self._window.refresh_timer_now()
             return
         provider = Gtk.CssProvider()
         provider.load_from_string(_CSS)

@@ -71,6 +71,13 @@ def _client_for(context: AppContext) -> ClockifyClientProtocol:
     return context.account_service.get_client(context.config)
 
 
+def _notify_gui(context: AppContext) -> None:
+    """Best-effort: tell a running GUI to refresh its timer state now."""
+    from clockify_launchers.infrastructure.app_bus import request_gui_timer_refresh
+
+    request_gui_timer_refresh(context.demo)
+
+
 def cmd_start(context: AppContext, launcher_id: str) -> int:
     launcher = context.db.get_launcher(launcher_id)
     notifications = context.notifications()
@@ -103,6 +110,7 @@ def cmd_start(context: AppContext, launcher_id: str) -> int:
         context.paths.timer_action_lock,
     )
     result = service.start_launcher(launcher)
+    _notify_gui(context)
     if result.outcome in (StartOutcome.STARTED, StartOutcome.SWITCHED):
         notifications.timer_success(result.message)
         return constants.EXIT_OK
@@ -136,6 +144,7 @@ def cmd_stop(context: AppContext) -> int:
         context.paths.timer_action_lock,
     )
     result = service.stop_current(config.active_workspace_id)
+    _notify_gui(context)
     print(result.message)
     if result.outcome is StartOutcome.FAILED:
         notifications.timer_failure(result.message)
