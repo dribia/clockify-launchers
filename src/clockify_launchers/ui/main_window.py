@@ -17,6 +17,7 @@ from clockify_launchers.infrastructure.clockify_api import (
     OfflineError,
 )
 from clockify_launchers.infrastructure.secret_store import SecretUnavailableError
+from clockify_launchers.infrastructure.status_notifier import TimerIndicator
 from clockify_launchers.services.sync_service import SyncResult, SyncService
 from clockify_launchers.ui.launchers_page import LaunchersPage
 from clockify_launchers.ui.preferences_page import PreferencesPage
@@ -27,6 +28,28 @@ if TYPE_CHECKING:
     from clockify_launchers.services.timer_service import StartResult
 
 log = logging.getLogger(__name__)
+
+
+def _screen_is_locked() -> bool:
+    """Best-effort GNOME screensaver query (worker thread)."""
+    from gi.repository import Gio
+
+    try:
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        result = bus.call_sync(
+            "org.gnome.ScreenSaver",
+            "/org/gnome/ScreenSaver",
+            "org.gnome.ScreenSaver",
+            "GetActive",
+            None,
+            None,
+            Gio.DBusCallFlags.NONE,
+            2000,
+            None,
+        )
+        return bool(result.unpack()[0])
+    except Exception:
+        return False
 
 
 class MainWindow(Adw.ApplicationWindow):
@@ -86,6 +109,18 @@ class MainWindow(Adw.ApplicationWindow):
         self._install_actions()
         self._apply_demo_state()
         self.refresh_all()
+
+        # Top-bar indicator. While it is visible in the top bar, closing the
+        # window hides to the indicator instead of quitting (ADR 0015).
+        self.indicator = TimerIndicator(
+            on_activate=self.present,
+            on_stop=lambda: self._on_stop_timer(None),
+            on_quit=self._quit_app,
+            on_lost=self._on_indicator_lost,
+        )
+        self.indicator.publish()
+        self.connect("close-request", self._on_close_request)
+
         GLib.timeout_add_seconds(30, self._refresh_timer_banner_tick)
         self._refresh_timer_banner()
 
@@ -170,6 +205,44 @@ class MainWindow(Adw.ApplicationWindow):
         return False
 
     # -- shared behaviors ------------------------------------------------------
+
+    def _on_close_request(self, _window: Gtk.Window) -> bool:
+        if self.indicator.registered:
+            # Keep running in the background; the indicator stays in the
+            # top bar and its menu offers Open / Stop / Quit.
+            self.set_visible(False)
+            return True
+        self.indicator.unpublish()
+        return False
+
+    def _quit_app(self) -> None:
+        self.indicator.unpublish()
+        app = self.get_application()
+        if app is not None:
+            app.quit()
+
+    def _on_indicator_lost(self) -> None:
+        """The top-bar watcher vanished while we may be running hidden.
+
+        Screen lock/unlock restarts the watcher, so give it a grace period
+        (and skip re-checks while the screen is locked) before re-presenting
+        the window. Never stay hidden without a reachable indicator.
+        """
+        GLib.timeout_add_seconds(10, self._check_indicator_reachable)
+
+    def _check_indicator_reachable(self) -> bool:
+        if self.indicator.registered or self.get_visible():
+            return False
+
+        def done(locked: bool) -> None:
+            if locked:
+                # Watcher is expected to return on unlock; check again later.
+                GLib.timeout_add_seconds(10, self._check_indicator_reachable)
+            elif not self.indicator.registered and not self.get_visible():
+                self.present()
+
+        run_async(_screen_is_locked, done, lambda _exc: done(False))
+        return False
 
     def toast(self, message: str) -> None:
         self.toast_overlay.add_toast(Adw.Toast.new(message))
@@ -296,6 +369,7 @@ class MainWindow(Adw.ApplicationWindow):
         def done(entry: TimeEntry | None) -> None:
             if entry is None:
                 self.timer_bar.set_visible(False)
+                self.indicator.set_tracking(None)
                 return
             project = self.context.db.get_project(entry.project_id or "")
             name = project.name if project else (entry.description or "timer")
@@ -306,10 +380,15 @@ class MainWindow(Adw.ApplicationWindow):
             hours, minutes = divmod(minutes, 60)
             self.timer_label.set_label(f"Tracking {name} - {hours:d}:{minutes:02d} elapsed")
             self.timer_bar.set_visible(True)
+            self.indicator.set_tracking(name)
 
-        run_async(work, done, lambda _exc: self.timer_bar.set_visible(False))
+        def error(_exc: Exception) -> None:
+            self.timer_bar.set_visible(False)
+            self.indicator.set_tracking(None)
 
-    def _on_stop_timer(self, _button: Gtk.Button) -> None:
+        run_async(work, done, error)
+
+    def _on_stop_timer(self, _button: Gtk.Button | None) -> None:
         config = self.context.config
         user_id = config.clockify_user_id or ""
         workspace_id = config.active_workspace_id or ""

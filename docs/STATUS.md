@@ -30,6 +30,15 @@ Updated: 2026-07-31
   `--fail-on error` (2 informational warnings), desktop/AppStream validation
   passes, locally signed test APT repository resolves and downloads the
   package by name (`make test-apt-repo`), manpage installed.
+- **Top-bar timer indicator** (ADR 0015): a StatusNotifierItem published
+  while the app runs shows the currently tracked project (or
+  "Not tracking") in Ubuntu's top bar via the default `ubuntu-appindicators`
+  extension, with an Open / Stop timer / Quit menu (com.canonical.dbusmenu).
+  When the indicator is confirmed visible, closing the window hides to the
+  indicator and the app keeps running; Quit exits fully. Without a watcher
+  the indicator stays dormant and window close quits as before. Unit tests
+  plus a private-bus integration round trip
+  (`tests/integration/test_status_notifier_bus.py`).
 
 `make verify` passes from a clean checkout: lint, typecheck (ty, 0 errors),
 222 unit/contract/integration tests, data validation, UI capture, 8 AT-SPI
