@@ -150,6 +150,29 @@ def test_duplicate_signature_detection(env):
     assert env.launcher_service.duplicate_of(other) is None
 
 
+def test_same_target_with_different_description_is_not_a_duplicate(env):
+    base = tank_target()
+    env.launcher_service.create(account_id=env.account.id, target=base, display_name="Kaito")
+    described = LauncherTarget(
+        workspace_id=base.workspace_id,
+        project_id=base.project_id,
+        task_id=base.task_id,
+        tag_ids=base.tag_ids,
+        description="Weekly sync",
+    )
+    # Same signature, different description: allowed to coexist.
+    assert env.launcher_service.duplicate_of(described) is None
+    assert env.launcher_service.same_target_of(described) is not None
+    second = env.launcher_service.create(
+        account_id=env.account.id, target=described, display_name="Kaito weekly"
+    )
+    assert second.target.signature == base.signature
+    # Now the described variant IS an exact duplicate of the second launcher.
+    assert env.launcher_service.duplicate_of(described) is not None
+    # And the undescribed one still matches the first.
+    assert env.launcher_service.duplicate_of(base).display_name == "Kaito"
+
+
 def test_imported_launcher_pinned_by_default(env):
     launcher = env.launcher_service.create(
         account_id=env.account.id,

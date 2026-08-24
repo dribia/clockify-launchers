@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Launcher editor: the Project and Task dropdowns support type-to-search,
+  making workspaces with many projects manageable.
+- Multiple launchers per target: launchers sharing the same project, task,
+  and tags may now coexist as long as their fixed descriptions differ; only
+  a full target+description match is blocked as a duplicate. The editor
+  shows an informational hint (instead of a hard block) when another
+  launcher shares the target. Automatic (sync) additions still deduplicate
+  by signature and never create such variants.
+
 ## [0.2.1] - 2026-08-24
 
 ### Fixed
