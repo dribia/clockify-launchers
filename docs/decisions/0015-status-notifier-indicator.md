@@ -57,3 +57,11 @@ unchanged.
   A minimal `com.canonical.dbusmenu` is therefore exported at
   `/StatusNotifierItem/Menu` with "Open" and "Stop timer" entries; the
   Stop entry is enabled only while a timer is tracked.
+- Known quirk (reviewed with the owner, 2026-08-24, decided to keep):
+  GNOME Shell's dock "Quit" is implemented as a close request to each
+  window - indistinguishable from the window's close button - so with the
+  indicator visible it hides to the background instead of exiting, like
+  other tray-style applications (Slack, Steam). Actually quitting requires
+  the indicator menu's Quit entry. Alternatives (quit-when-idle, a
+  preferences toggle) were considered and declined to keep behavior
+  predictable.
