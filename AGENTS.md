@@ -1527,7 +1527,7 @@ The MVP is done only when all of these are true:
 - Merge method for regular PRs: **squash**.
 - Exception: the automated release flow keeps its own mechanics (bump PR,
   release.yml, deploy.yml) as described in `docs/releasing.md` and the
-  `release-drilaunchers` skill; the bump PR may also be squash-merged since
+  `release-clockify-launchers` skill; the bump PR may also be squash-merged since
   `release.yml` matches on the PR title in the commit message.
 
 ### 29.1 Decisions the agent should make without asking
