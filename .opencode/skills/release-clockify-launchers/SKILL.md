@@ -1,6 +1,6 @@
 ---
-name: release-drilaunchers
-description: Use when the developer asks to release, publish, ship, or version-bump this repository (drilaunchers / dribia-clockify-launchers). Guides the whole release process end to end - preflight, landing pending work, CHANGELOG, bump workflow, bump PR merge, publishing the draft release, deploy monitoring - asking the developer for approval before every critical step.
+name: release-clockify-launchers
+description: Use when the developer asks to release, publish, ship, or version-bump this repository (clockify-launchers / dribia-clockify-launchers). Guides the whole release process end to end - preflight, landing pending work, CHANGELOG, bump workflow, bump PR merge, publishing the draft release, deploy monitoring - asking the developer for approval before every critical step.
 ---
 
 # Release process for dribia-clockify-launchers
