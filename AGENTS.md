@@ -1515,6 +1515,21 @@ The MVP is done only when all of these are true:
 
 ## 29. Agent autonomy rules
 
+### 29.0 Git workflow (agreed with the repository owner, 2026-08-24)
+
+- **Code changes go through pull requests to `main`, never direct commits.**
+  This includes source, tests, packaging, CI, and skills.
+- Trivial documentation-only changes (docs/, CHANGELOG.md typo or wording
+  fixes, STATUS.md updates) may be committed directly to `main`.
+- The agent opens the PR, waits for CI to pass, then **asks the owner for
+  approval before merging**. The owner may review in GitHub or approve
+  verbally in-session.
+- Merge method for regular PRs: **squash**.
+- Exception: the automated release flow keeps its own mechanics (bump PR,
+  release.yml, deploy.yml) as described in `docs/releasing.md` and the
+  `release-drilaunchers` skill; the bump PR may also be squash-merged since
+  `release.yml` matches on the PR title in the commit message.
+
 ### 29.1 Decisions the agent should make without asking
 
 Use the defaults in this document for:
