@@ -46,11 +46,19 @@ class LauncherEditor(Adw.Dialog):
         project_names = [p.name for p in self.projects] or ["(no projects cached)"]
         self.project_row = Adw.ComboRow(title="Project", subtitle="Required")
         self.project_row.set_model(Gtk.StringList.new(project_names))
+        # Type-to-search inside the popover; essential with many projects.
+        self.project_row.set_expression(
+            Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
+        )
+        self.project_row.set_enable_search(True)
         self.project_row.connect("notify::selected", self._on_project_changed)
         group.add(self.project_row)
 
         self.task_row = Adw.ComboRow(title="Task", subtitle="Optional")
         self.task_row.set_model(Gtk.StringList.new(["No task"]))
+        self.task_row.set_expression(Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"))
+        self.task_row.set_enable_search(True)
+        self.task_row.connect("notify::selected", lambda *_: self._check_duplicate())
         group.add(self.task_row)
 
         self.tags_group = Adw.PreferencesGroup(title="Tags")
@@ -59,6 +67,7 @@ class LauncherEditor(Adw.Dialog):
             if tag.archived:
                 continue
             row = Adw.SwitchRow(title=tag.name)
+            row.connect("notify::active", lambda *_: self._check_duplicate())
             self.tags_group.add(row)
             self.tag_rows.append((tag.id, row))
 
@@ -68,6 +77,7 @@ class LauncherEditor(Adw.Dialog):
         self.comment_row = Adw.EntryRow(title="Comment (optional)")
         details.add(self.comment_row)
         self.description_row = Adw.EntryRow(title="Fixed time-entry description (optional)")
+        self.description_row.connect("notify::text", lambda *_: self._check_duplicate())
         details.add(self.description_row)
 
         icon_row = Adw.ActionRow(
@@ -140,10 +150,18 @@ class LauncherEditor(Adw.Dialog):
         target = self._current_target()
         if target is None:
             return
-        duplicate = self.context.launcher_service.duplicate_of(target)
-        if duplicate is not None and (self.launcher is None or duplicate.id != self.launcher.id):
+        exact = self.context.launcher_service.duplicate_of(target)
+        if exact is not None and (self.launcher is None or exact.id != self.launcher.id):
             self.duplicate_label.set_label(
-                f"A launcher with this target already exists: {duplicate.display_name}"
+                f"A launcher with this target and description already exists: {exact.display_name}"
+            )
+            self.duplicate_label.set_visible(True)
+            return
+        same = self.context.launcher_service.same_target_of(target)
+        if same is not None and (self.launcher is None or same.id != self.launcher.id):
+            self.duplicate_label.set_label(
+                f"'{same.display_name}' shares this target. That is fine as long as "
+                "the fixed descriptions differ."
             )
             self.duplicate_label.set_visible(True)
         else:
@@ -204,7 +222,7 @@ class LauncherEditor(Adw.Dialog):
         duplicate = self.context.launcher_service.duplicate_of(target)
         if duplicate is not None and (self.launcher is None or duplicate.id != self.launcher.id):
             self._check_duplicate()
-            self.window.toast("A launcher with this target already exists.")
+            self.window.toast("A launcher with this target and description already exists.")
             return
 
         def work() -> Launcher:

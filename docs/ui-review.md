@@ -68,3 +68,12 @@ hierarchy, button reachable by keyboard (activatable row).
 Also hardened the capture harness: target PNG is deleted before capture (a
 stale file can no longer pass plausibility checks) and window capture retries
 up to five times.
+
+## 2026-08-24 - launcher editor: searchable dropdowns, duplicate wording
+
+- `launcher-editor.png` (1000x720) recaptured after enabling type-to-search
+  on the Project and Task combo rows and rewording the duplicate hint.
+  Closed-state layout unchanged: rows aligned, no clipping; the search entry
+  only appears inside the open popover (not capturable headlessly). Duplicate
+  label now distinguishes exact duplicates (blocking) from shared-target
+  launchers with different descriptions (informational).

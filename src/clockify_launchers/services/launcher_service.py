@@ -212,6 +212,21 @@ class LauncherService:
         return launcher
 
     def duplicate_of(self, target: LauncherTarget) -> Launcher | None:
+        """An exact duplicate: same signature AND same fixed description.
+
+        Several launchers may share a target (signature) as long as their
+        fixed descriptions differ; only a full match counts as a duplicate.
+        """
+        for launcher in self._db.list_launchers():
+            if (
+                launcher.target.signature == target.signature
+                and launcher.target.description == target.description
+            ):
+                return launcher
+        return None
+
+    def same_target_of(self, target: LauncherTarget) -> Launcher | None:
+        """A launcher sharing the signature (ignoring description), if any."""
         for launcher in self._db.list_launchers():
             if launcher.target.signature == target.signature:
                 return launcher
