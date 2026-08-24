@@ -40,9 +40,9 @@ actually reached. The gates, in order:
 
 | # | Gate | What to ask |
 | - | ---- | ----------- |
-| G1 | Push pending work | "Commit and push these changes to main / open a PR?" (show `git status` summary first) |
+| G1 | Land pending work | Open a PR for pending code changes (per AGENTS.md 29.0: code always via PR, squash merge); ask before opening it and again before merging once CI is green. |
 | G2 | Bump kind | Offer major / minor / patch with a **recommendation** derived from the Unreleased CHANGELOG section (breaking -> major, features -> minor, fixes only -> patch). Developer decides. |
-| G3 | Approve + merge bump PR | Show the PR diff summary and CI status first. |
+| G3 | Approve + merge bump PR | Show the PR diff summary and CI status first. Squash merge (release.yml matches on the PR title in the squash commit message). |
 | G4 | Publish (un-draft) the release | Make explicit that this deploys to the production APT repo for all users. |
 
 Everything else (running checks, editing CHANGELOG dates, watching CI,
@@ -75,9 +75,11 @@ If the working tree is dirty or local commits are unpushed:
   re-check if lint fails on formatting), `make typecheck`.
 - Make sure `CHANGELOG.md` `[Unreleased]` describes the pending work; add
   entries if missing.
-- **G1**: ask before committing/pushing. Commit style: imperative subject,
-  explanatory body (see `git log` for examples).
-- After pushing, watch CI: `gh run list --limit 3`, then
+- **G1**: per AGENTS.md 29.0, code changes go through a PR to main
+  (squash merge); trivial docs-only changes may go direct. Ask before
+  opening/pushing the PR, wait for CI green, then ask again before merging.
+- After merging, confirm CI is green on main:
+  `gh run list --limit 3`, then
   `gh run watch <id> --exit-status --interval 15`. Do not continue until CI
   is green on main.
 
@@ -126,7 +128,7 @@ git fetch origin release/vX.Y.Z-merge -q && git checkout release/vX.Y.Z-merge -q
 
 ```bash
 gh pr review <pr> --approve
-gh pr merge <pr> --merge --delete-branch
+gh pr merge <pr> --squash --delete-branch
 git checkout main -q && git pull -q
 ```
 
@@ -175,6 +177,8 @@ Report to the developer:
 
 ## Hard rules
 
+- Code changes always go through squash-merged PRs to main; never direct
+  commits (AGENTS.md 29.0). Trivial docs-only changes may go direct.
 - Never push tags manually; tags are created by release.yml.
 - Never edit version numbers by hand outside `scripts/bump-version.py`.
 - Never commit signing keys, APT credentials, or API keys (releasing.md).
