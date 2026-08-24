@@ -1525,6 +1525,11 @@ The MVP is done only when all of these are true:
   approval before merging**. The owner may review in GitHub or approve
   verbally in-session.
 - Merge method for regular PRs: **squash**.
+- `main` has branch protection (2026-08-24): PRs required with the `verify`
+  status check (strict), conversation resolution required, force pushes and
+  deletion blocked, 0 required approvals (self-authored PRs cannot be
+  self-approved), and admin enforcement off so the docs-direct-to-main
+  exception above keeps working for the owner.
 - Exception: the automated release flow keeps its own mechanics (bump PR,
   release.yml, deploy.yml) as described in `docs/releasing.md` and the
   `release-clockify-launchers` skill; the bump PR may also be squash-merged since
