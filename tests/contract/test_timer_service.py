@@ -19,6 +19,7 @@ from clockify_launchers.domain.models import (
 )
 from clockify_launchers.infrastructure.clockify_api import (
     AmbiguousResultError,
+    OfflineError,
     RequiredCustomFieldError,
     ValidationFailedError,
 )
@@ -225,3 +226,58 @@ def test_stop_current_noop_when_nothing_running(db, tmp_path):
     client = ScriptedClient(running_entry=None)
     result = make_service(db, client, tmp_path).stop_current(WS)
     assert result.outcome is StartOutcome.NOOP
+
+
+class StopScriptedClient(ScriptedClient):
+    """ScriptedClient that can also fail the stop request."""
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.stop_exc: Exception | None = None
+        self.probe_exc: Exception | None = None
+        self.probe_entry: TimeEntry | None = None
+        self._stop_failed = False
+
+    def stop_current_entry(self, *args, **kwargs) -> TimeEntry | None:
+        if self.stop_exc is not None:
+            self._stop_failed = True
+            raise self.stop_exc
+        return super().stop_current_entry(*args, **kwargs)
+
+    def get_in_progress_entry(self, workspace_id: str, user_id: str) -> TimeEntry | None:
+        if self._stop_failed:
+            if self.probe_exc is not None:
+                raise self.probe_exc
+            return self.probe_entry
+        return super().get_in_progress_entry(workspace_id, user_id)
+
+
+def test_stop_ambiguous_readback_confirms_stop(db, tmp_path):
+    """A lost stop response that actually applied is reported as success."""
+    client = StopScriptedClient(running_entry=_running("p1"))
+    client.stop_exc = AmbiguousResultError("timed out")
+    client.probe_entry = None  # nothing running any more: stop applied
+    result = make_service(db, client, tmp_path).stop_current(WS)
+    assert result.outcome is StartOutcome.STARTED
+    assert result.message == "Timer stopped."
+
+
+def test_stop_ambiguous_readback_still_running(db, tmp_path):
+    """A lost stop response with the timer still running stays ambiguous."""
+    running = _running("p1")
+    client = StopScriptedClient(running_entry=running)
+    client.stop_exc = AmbiguousResultError("timed out")
+    client.probe_entry = running
+    result = make_service(db, client, tmp_path).stop_current(WS)
+    assert result.outcome is StartOutcome.AMBIGUOUS
+    assert "still running" in result.message
+
+
+def test_stop_ambiguous_and_probe_fails_stays_ambiguous(db, tmp_path):
+    """If the verification read also fails, never claim success."""
+    client = StopScriptedClient(running_entry=_running("p1"))
+    client.stop_exc = AmbiguousResultError("timed out")
+    client.probe_exc = OfflineError("offline")
+    result = make_service(db, client, tmp_path).stop_current(WS)
+    assert result.outcome is StartOutcome.AMBIGUOUS
+    assert "may or may not" in result.message

@@ -192,7 +192,24 @@ class TimerService:
     def stop_current(self, workspace_id: str) -> StartResult:
         try:
             with acquire_lock(self._lock_path):
-                entry = self._client.stop_current_entry(workspace_id, self._user_id, utc_now())
+                try:
+                    entry = self._client.stop_current_entry(workspace_id, self._user_id, utc_now())
+                except AmbiguousResultError:
+                    # The response was lost; read back whether the stop applied.
+                    try:
+                        still_running = self._client.get_in_progress_entry(
+                            workspace_id, self._user_id
+                        )
+                    except ClockifyError:
+                        msg = "The stop request timed out; the timer may or may not have stopped."
+                        self._event("timer-stop-failed", msg, None, EventSeverity.ERROR)
+                        return StartResult(StartOutcome.AMBIGUOUS, msg)
+                    if still_running is None:
+                        self._event("timer-stopped", "Stopped the running timer")
+                        return StartResult(StartOutcome.STARTED, "Timer stopped.")
+                    msg = "The stop request timed out and the timer is still running. Try again."
+                    self._event("timer-stop-failed", msg, None, EventSeverity.ERROR)
+                    return StartResult(StartOutcome.AMBIGUOUS, msg)
         except LockBusyError:
             return StartResult(StartOutcome.FAILED, "Another timer action is already in progress.")
         except NotFoundError:
