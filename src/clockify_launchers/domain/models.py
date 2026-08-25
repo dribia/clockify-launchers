@@ -94,6 +94,7 @@ class Project:
     color: str | None = None
     client_name: str | None = None
     archived: bool = False
+    billable_by_default: bool = False
 
 
 @dataclass(frozen=True, slots=True)

@@ -38,11 +38,13 @@ class ScriptedClient(FakeClockifyClient):
         super().__init__(**kwargs)
         self.start_exc: Exception | None = None
         self.start_calls = 0
+        self.start_kwargs: dict | None = None
         self.readback_entry: TimeEntry | None = None
         self._readback_armed = False
 
     def start_time_entry(self, *args, **kwargs) -> TimeEntry:
         self.start_calls += 1
+        self.start_kwargs = kwargs
         if self.start_exc is not None:
             self._readback_armed = True
             raise self.start_exc
@@ -123,6 +125,26 @@ def test_start_with_no_running_timer(db, tmp_path):
     saved = db.get_launcher(launcher.id)
     assert saved.last_start_success_at is not None
     assert saved.last_invoked_at is not None
+
+
+def test_start_passes_project_billable_default(db, tmp_path):
+    now = utc_now()
+    db.cache_projects(
+        [Project(id="p1", workspace_id=WS, name="Tank", billable_by_default=True)], now
+    )
+    client = ScriptedClient(running_entry=None)
+    launcher = make_launcher(db)
+    result = make_service(db, client, tmp_path).start_launcher(launcher)
+    assert result.outcome is StartOutcome.STARTED
+    assert client.start_kwargs["billable"] is True
+
+
+def test_start_passes_billable_false_for_non_billable_project(db, tmp_path):
+    client = ScriptedClient(running_entry=None)
+    launcher = make_launcher(db)
+    result = make_service(db, client, tmp_path).start_launcher(launcher)
+    assert result.outcome is StartOutcome.STARTED
+    assert client.start_kwargs["billable"] is False
 
 
 def test_switch_from_another_running_timer_same_timestamp(db, tmp_path):
