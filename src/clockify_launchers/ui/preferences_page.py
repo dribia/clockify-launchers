@@ -52,6 +52,23 @@ class PreferencesPage(Adw.PreferencesPage):
         management.add(self.mode_row)
         self.add(management)
 
+        # Background
+        background = Adw.PreferencesGroup(
+            title="Background",
+            description=(
+                "Keeps the top-bar timer indicator available even when timers are "
+                "started from Ubuntu launchers without opening this window."
+            ),
+        )
+        self.background_row = Adw.SwitchRow(
+            title="Show the timer indicator at login",
+            subtitle="Start Clockify Launchers in the background when you log in",
+            active=config.start_in_background,
+        )
+        self.background_row.connect("notify::active", self._on_background_changed)
+        background.add(self.background_row)
+        self.add(background)
+
         # Automation settings
         automation = Adw.PreferencesGroup(title="Automation")
         self.interval_row = self._spin_row(
@@ -160,6 +177,23 @@ class PreferencesPage(Adw.PreferencesPage):
             self.context.systemd.apply_interval(config.policy.sync_interval_minutes)
         self.window.toast(f"Management mode set to {mode.value.capitalize()}.")
         self.window._update_status_bar()
+
+    def _on_background_changed(self, *_args: object) -> None:
+        enabled = self.background_row.get_active()
+        config = self.context.config
+        if enabled == config.start_in_background:
+            return
+        config.start_in_background = enabled
+        self.context.save_config(config)
+        if not self.context.demo:
+            from clockify_launchers.infrastructure import autostart
+
+            autostart.apply(self.context.paths, enabled)
+        self.window.toast(
+            "The timer indicator will appear at login."
+            if enabled
+            else "Background start at login disabled."
+        )
 
     def _on_setting_changed(self, *_args: object) -> None:
         """Debounce rapid spin clicks, then persist automatically."""

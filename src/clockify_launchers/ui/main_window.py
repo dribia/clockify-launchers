@@ -225,6 +225,15 @@ class MainWindow(Adw.ApplicationWindow):
             # "map" does not fire when the window was already visible.
             self.refresh_timer_now()
 
+    def run_in_background(self) -> None:
+        """Background (autostart) start: keep the window hidden.
+
+        The window stays alive so the top-bar indicator works from login.
+        If the indicator cannot register, the existing reachability check
+        presents the window instead of staying invisibly hidden.
+        """
+        GLib.timeout_add_seconds(10, self._check_indicator_reachable)
+
     def _quit_app(self) -> None:
         self.indicator.unpublish()
         app = self.get_application()

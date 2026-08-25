@@ -180,6 +180,7 @@ def demo_paths(root: Path) -> XdgPaths:
         applications_dir=root / "share" / "applications",
         icons_dir=root / "share" / name / "icons",
         systemd_user_dir=root / "config" / "systemd" / "user",
+        autostart_dir=root / "config" / "autostart",
     )
 
 

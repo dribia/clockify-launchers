@@ -31,6 +31,7 @@ class XdgPaths:
     applications_dir: Path
     icons_dir: Path
     systemd_user_dir: Path
+    autostart_dir: Path
 
     @property
     def config_file(self) -> Path:
@@ -85,4 +86,5 @@ def resolve_paths(environ: dict[str, str] | None = None) -> XdgPaths:
         applications_dir=data_home / "applications",
         icons_dir=data_home / constants.DATA_DIR_NAME / "icons",
         systemd_user_dir=config_home / "systemd" / "user",
+        autostart_dir=config_home / "autostart",
     )
