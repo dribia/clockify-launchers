@@ -19,8 +19,9 @@ Key features:
 ### From the Dribia APT repository (recommended)
 
 Packages are published to a private Google Artifact Registry repository.
-You need a Google account with read access to the `dribia-tools` project
-(any Dribia account works) and the `gcloud` CLI installed.
+You need a Google account with read access to the `dribia-apt` repository in
+the `dribia-operation` project (the `tothom@dribia.com` group has it) and
+the `gcloud` CLI installed.
 
 **1. Install Google's Artifact Registry apt transport** (one time):
 
@@ -40,7 +41,7 @@ scheme routes the download through the authenticated transport from step 1:
 ```sh
 curl -fsSL https://us-apt.pkg.dev/doc/repo-signing-key.gpg | \
   sudo gpg --dearmor -o /usr/share/keyrings/dribia-apt.gpg
-echo "deb [signed-by=/usr/share/keyrings/dribia-apt.gpg] ar+https://europe-west1-apt.pkg.dev/projects/dribia-tools dribia-apt main" | \
+echo "deb [signed-by=/usr/share/keyrings/dribia-apt.gpg] ar+https://europe-west1-apt.pkg.dev/projects/dribia-operation dribia-apt main" | \
   sudo tee /etc/apt/sources.list.d/dribia.list
 ```
 
@@ -73,11 +74,11 @@ Troubleshooting:
   could not authenticate or is not authorized, and apt reports the failed
   download generically. Check, in order: step 3 was done with `sudo`
   (root ADC), you logged in with your `@dribia.com` Google account, and
-  that account can read Artifact Registry in `dribia-tools`
-  (`roles/artifactregistry.reader` is granted to the `dribia.com` domain
-  via Terraform in `dribia-tools-infrastructure`).
+  that account can read Artifact Registry in `dribia-operation`
+  (`roles/artifactregistry.reader` is granted to the `tothom@dribia.com`
+  group via Terraform in `dribia-operation-terraform`).
 - `401`/`403` on the Dribia repository: same causes as above; your Google
-  account lacks read access to Artifact Registry in `dribia-tools`.
+  account lacks read access to Artifact Registry in `dribia-operation`.
 - `NO_PUBKEY C0BA5CE6DC6315A3` / `repository is not signed`: the signing key
   from step 2 is missing, or the sources line lacks the `signed-by` option.
   As a fallback the key can be fetched from a keyserver:

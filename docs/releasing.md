@@ -54,27 +54,28 @@ GitHub release.
 ### One-time GCP setup
 
 The GCP resources are managed with Terraform in the
-`dribia-tools-infrastructure` repository (project `dribia-tools`):
+`dribia-operation-terraform` repository (project `dribia-operation`):
 
-- `modules/google-artifact-registry`: APT repository `dribia-apt` in
-  `europe-west1`.
-- `modules/google-service-accounts`: `apt-publisher-sa` service account.
-- `modules/google-iam`: `artifactregistry.writer` on the APT repo for the
-  publisher, and a `workloadIdentityUser` binding on the existing GitHub
-  Actions identity pool (owner-scoped to the `dribia` GitHub organization).
+- APT repository `dribia-apt` in `europe-west1`.
+- `packages-ci` service account with `artifactregistry.writer` on the APT
+  repo, and a `workloadIdentityUser` binding on the GitHub Actions identity
+  pool for each publishing repository (this repository,
+  `dribia/clockify-launchers`, must be in that list).
+- `roles/artifactregistry.reader` on the repo for the `tothom@dribia.com`
+  group (end-user installs).
 
-Run `terraform plan` / `terraform apply` there. The
-`google_ci_identity_pool_provider_name` output matches the org-wide GitHub
-variable `GCP_WORKLOAD_IDENTITY_PROVIDER`;
-`apt-publisher-sa@dribia-tools.iam.gserviceaccount.com` is the value for the
+Run `terraform plan` / `terraform apply` there. The identity pool provider
+resource name is the value for the GitHub variable/secret
+`GCP_WORKLOAD_IDENTITY_PROVIDER`;
+`packages-ci@dribia-operation.iam.gserviceaccount.com` is the value for the
 `GCP_APT_PUBLISHER_SERVICE_ACCOUNT` variable.
 
 Then set GitHub Actions configuration:
 
-- Variables: `GCP_PROJECT_ID=dribia-tools`, `GAR_LOCATION=europe-west1`,
+- Variables: `GCP_PROJECT_ID=dribia-operation`, `GAR_LOCATION=europe-west1`,
   `GAR_APT_REPOSITORY=dribia-apt`,
-  `GCP_APT_PUBLISHER_SERVICE_ACCOUNT=apt-publisher-sa@dribia-tools.iam.gserviceaccount.com`,
-  plus the org-wide `GCP_WORKLOAD_IDENTITY_PROVIDER`.
+  `GCP_APT_PUBLISHER_SERVICE_ACCOUNT=packages-ci@dribia-operation.iam.gserviceaccount.com`,
+  plus `GCP_WORKLOAD_IDENTITY_PROVIDER`.
 - No secrets are required; authentication uses OIDC.
 - Optionally protect the `production` environment with required reviewers;
   the publish job runs in it.
@@ -105,7 +106,7 @@ credentials; for machines with gcloud user credentials:
 
 ```bash
 sudo apt-get install -y apt-transport-artifact-registry
-echo "deb ar+https://europe-west1-apt.pkg.dev/projects/dribia-tools dribia-apt main" | \
+echo "deb ar+https://europe-west1-apt.pkg.dev/projects/dribia-operation dribia-apt main" | \
   sudo tee /etc/apt/sources.list.d/clockify-launchers.list
 sudo apt-get update
 sudo apt-get install dribia-clockify-launchers
@@ -116,6 +117,6 @@ The `apt-transport-artifact-registry` package (from Google's
 https://cloud.google.com/artifact-registry/docs/os-packages/debian/configure)
 authenticates apt with the machine's gcloud or service-account credentials.
 If the repository is made public instead, the standard `deb
-https://europe-west1-apt.pkg.dev/projects/dribia-tools dribia-apt main` line
+https://europe-west1-apt.pkg.dev/projects/dribia-operation dribia-apt main` line
 works with the signing key from
-`https://europe-west1-apt.pkg.dev/projects/dribia-tools/repos/dribia-apt/gpg`.
+`https://europe-west1-apt.pkg.dev/projects/dribia-operation/repos/dribia-apt/gpg`.
