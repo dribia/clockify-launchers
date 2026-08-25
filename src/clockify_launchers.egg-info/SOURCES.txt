@@ -24,6 +24,7 @@ src/clockify_launchers/domain/policies.py
 src/clockify_launchers/domain/signatures.py
 src/clockify_launchers/infrastructure/__init__.py
 src/clockify_launchers/infrastructure/app_bus.py
+src/clockify_launchers/infrastructure/autostart.py
 src/clockify_launchers/infrastructure/clockify_api.py
 src/clockify_launchers/infrastructure/config_store.py
 src/clockify_launchers/infrastructure/database.py
