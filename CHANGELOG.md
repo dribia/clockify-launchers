@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Background start at login (enabled by default, ADR 0016): an XDG
+  autostart entry launches `clockify-launchers gui --hidden`, so the
+  top-bar timer indicator is available from login even when timers are
+  only ever started from Ubuntu launchers. Onboarding offers the switch
+  (on by default) and Preferences can toggle it later; disabling removes
+  the autostart entry immediately.
+- New `gui --hidden` flag: starts the application in the background
+  (indicator only). If the top-bar indicator cannot register, the window
+  presents itself instead of running invisibly.
 - Launcher editor: the Project and Task dropdowns support type-to-search,
   making workspaces with many projects manageable.
 - Multiple launchers per target: launchers sharing the same project, task,

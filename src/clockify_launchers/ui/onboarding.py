@@ -242,6 +242,21 @@ class OnboardingWindow(Adw.ApplicationWindow):
             self._mode_checks.append(check)
         page.add(group)
 
+        background_group = Adw.PreferencesGroup(
+            title="Background",
+            description=(
+                "Recommended: with this on, timers started from Ubuntu launchers show "
+                "the tracked project in the top bar even when this window is closed."
+            ),
+        )
+        self.background_row = Adw.SwitchRow(
+            title="Show the timer indicator at login",
+            subtitle="Start Clockify Launchers in the background when you log in",
+            active=True,
+        )
+        background_group.add(self.background_row)
+        page.add(background_group)
+
         finish_group = Adw.PreferencesGroup()
         button = Gtk.Button(label="Finish", halign=Gtk.Align.CENTER)
         button.add_css_class("suggested-action")
@@ -266,14 +281,20 @@ class OnboardingWindow(Adw.ApplicationWindow):
         mode = self._chosen_mode
         base_url = self._base_url
         api_key = self._api_key or "demo-key"
+        start_in_background = self.background_row.get_active()
 
         def work() -> None:
             self.context.account_service.connect(base_url, api_key, validation, workspace_id)
             config = self.context.config_store.load()
             config.management_mode = mode
             config.onboarding_complete = True
+            config.start_in_background = start_in_background
             self.context.config_store.save(config)
             self.context._config_cache = None
+            if not self.context.demo:
+                from clockify_launchers.infrastructure import autostart
+
+                autostart.apply(self.context.paths, start_in_background)
             if mode is not ManagementMode.MANUAL and not self.context.demo:
                 self.context.systemd.enable_timer()
                 self.context.systemd.apply_interval(config.policy.sync_interval_minutes)

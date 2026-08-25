@@ -40,7 +40,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--verbose", action="store_true", help="enable debug logging")
     sub = parser.add_subparsers(dest="command")
 
-    sub.add_parser("gui", help="open or focus the application window")
+    p_gui = sub.add_parser("gui", help="open or focus the application window")
+    p_gui.add_argument(
+        "--hidden",
+        action="store_true",
+        help="start in the background (top-bar indicator only, no window)",
+    )
 
     p_start = sub.add_parser("start", help="start or switch the timer for one launcher")
     p_start.add_argument("--launcher", required=True, metavar="UUID")
@@ -305,10 +310,10 @@ def cmd_reset(context: AppContext, remove_launchers: bool, yes: bool) -> int:
     return constants.EXIT_OK
 
 
-def cmd_gui(context: AppContext) -> int:
+def cmd_gui(context: AppContext, hidden: bool = False) -> int:
     from clockify_launchers.application import run_app
 
-    return run_app(context)
+    return run_app(context, start_hidden=hidden)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -325,7 +330,7 @@ def main(argv: list[str] | None = None) -> int:
     context = build_context()
     try:
         if command == "gui":
-            return cmd_gui(context)
+            return cmd_gui(context, getattr(args, "hidden", False))
         if command == "start":
             return cmd_start(context, args.launcher)
         if command == "stop":

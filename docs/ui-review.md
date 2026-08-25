@@ -77,3 +77,13 @@ up to five times.
   only appears inside the open popover (not capturable headlessly). Duplicate
   label now distinguishes exact duplicates (blocking) from shared-target
   launchers with different descriptions (informational).
+
+## 2026-08-25 - background-at-login switch (onboarding + preferences)
+
+- `onboarding-mode.png` (1000x720): new "Background" group under the mode
+  choices with a SwitchRow "Show the timer indicator at login" (on by
+  default). Spacing/hierarchy consistent with the mode group; description
+  wraps cleanly; Finish button unaffected.
+- `preferences.png` and `preferences-narrow.png` (800x700): matching
+  "Background" group between Management mode and Automation. No clipping or
+  overlap at either size; the switch and subtitle render correctly narrow.

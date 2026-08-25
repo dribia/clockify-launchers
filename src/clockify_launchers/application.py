@@ -35,7 +35,7 @@ _CSS = """
 
 
 class ClockifyLaunchersApp(Adw.Application):
-    def __init__(self, context: AppContext) -> None:
+    def __init__(self, context: AppContext, start_hidden: bool = False) -> None:
         GLib.set_prgname(constants.EXECUTABLE)
         GLib.set_application_name(constants.APP_NAME)
         super().__init__(
@@ -44,6 +44,9 @@ class ClockifyLaunchersApp(Adw.Application):
         )
         self.context = context
         self._window: Adw.ApplicationWindow | None = None
+        # Consumed on the first activation only: remote activations (a second
+        # `gui` invocation, or the indicator's Open action) always present.
+        self._start_hidden = start_hidden
         self.connect("activate", self._on_activate)
 
         # Exported app action: lets the short-lived `start`/`stop` CLI
@@ -91,7 +94,15 @@ class ClockifyLaunchersApp(Adw.Application):
                 self._window.set_default_size(width, height)
             except ValueError:
                 pass
-        self._window.present()
+        hidden = self._start_hidden and isinstance(self._window, MainWindow)
+        self._start_hidden = False
+        if hidden and isinstance(self._window, MainWindow):
+            # Background start (autostart at login): no window, only the
+            # top-bar indicator. The window presents itself if the indicator
+            # cannot register (ADR 0016).
+            self._window.run_in_background()
+        else:
+            self._window.present()
         GLib.idle_add(self._write_ready_file)
 
     @staticmethod
@@ -120,6 +131,6 @@ class ClockifyLaunchersApp(Adw.Application):
             old.destroy()
 
 
-def run_app(context: AppContext) -> int:
-    app = ClockifyLaunchersApp(context)
+def run_app(context: AppContext, start_hidden: bool = False) -> int:
+    app = ClockifyLaunchersApp(context, start_hidden=start_hidden)
     return app.run(None)
