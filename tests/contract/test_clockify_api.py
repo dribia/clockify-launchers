@@ -200,7 +200,14 @@ def test_pagination_stops_after_expected_pages_max_guard_boundary():
 
 def test_get_projects_parses_archived_flag_and_fields():
     payload = [
-        {"id": "p1", "name": "Tank", "color": "#03A9F4", "clientName": "Dribia", "archived": False},
+        {
+            "id": "p1",
+            "name": "Tank",
+            "color": "#03A9F4",
+            "clientName": "Dribia",
+            "archived": False,
+            "billable": True,
+        },
         {"id": "p2", "name": "Old", "archived": True},
     ]
 
@@ -216,7 +223,9 @@ def test_get_projects_parses_archived_flag_and_fields():
     assert projects[0].color == "#03A9F4"
     assert projects[0].client_name == "Dribia"
     assert projects[0].archived is False
+    assert projects[0].billable_by_default is True
     assert projects[1].archived is True
+    assert projects[1].billable_by_default is False
     assert all(p.workspace_id == "ws1" for p in projects)
 
 
@@ -314,7 +323,7 @@ def test_start_time_entry_payload_contents():
     client, _ = make_client(handler)
     start = datetime(2026, 7, 31, 12, 34, 56, 789000, tzinfo=UTC)
     entry = client.start_time_entry(
-        "ws1", "p1", start, task_id="k1", tag_ids=("t1", "t2"), description="fix"
+        "ws1", "p1", start, task_id="k1", tag_ids=("t1", "t2"), description="fix", billable=True
     )
     payload = seen[0]
     assert payload == {
@@ -323,6 +332,7 @@ def test_start_time_entry_payload_contents():
         "taskId": "k1",
         "tagIds": ["t1", "t2"],
         "description": "fix",
+        "billable": True,
     }
     assert entry.id == "te-new"
     assert entry.running is True
@@ -339,6 +349,19 @@ def test_start_time_entry_omits_optional_fields():
     client, _ = make_client(handler)
     client.start_time_entry("ws1", "p1", datetime(2026, 7, 31, tzinfo=UTC))
     assert set(seen[0]) == {"start", "projectId"}
+
+
+def test_start_time_entry_sends_explicit_billable_false():
+    seen: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        seen.append(payload)
+        return json_response(_started_payload(payload), 201)
+
+    client, _ = make_client(handler)
+    client.start_time_entry("ws1", "p1", datetime(2026, 7, 31, tzinfo=UTC), billable=False)
+    assert seen[0]["billable"] is False
 
 
 def test_start_time_entry_timeout_is_ambiguous():

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Started time entries now respect the Clockify project's "billable by
+  default" setting. Previously the `billable` flag was omitted from the
+  start request, so the Clockify API defaulted every entry to
+  non-billable regardless of the project configuration.
+
 ### Added
 
 - Launcher editor: the Project and Task dropdowns support type-to-search,

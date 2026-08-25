@@ -199,6 +199,7 @@ class ClockifyClientProtocol(Protocol):
         task_id: str | None = None,
         tag_ids: tuple[str, ...] = (),
         description: str | None = None,
+        billable: bool | None = None,
     ) -> TimeEntry: ...
 
     def stop_current_entry(
@@ -349,6 +350,7 @@ class ClockifyClient:
                     color=p.get("color") or None,
                     client_name=client_name,
                     archived=bool(p.get("archived", False)),
+                    billable_by_default=bool(p.get("billable", False)),
                 )
             )
         return projects
@@ -364,6 +366,7 @@ class ClockifyClient:
             color=p.get("color") or None,
             client_name=p.get("clientName") or None,
             archived=bool(p.get("archived", False)),
+            billable_by_default=bool(p.get("billable", False)),
         )
 
     def get_tags(self, workspace_id: str) -> list[Tag]:
@@ -422,6 +425,7 @@ class ClockifyClient:
         task_id: str | None = None,
         tag_ids: tuple[str, ...] = (),
         description: str | None = None,
+        billable: bool | None = None,
     ) -> TimeEntry:
         payload: dict[str, Any] = {"start": format_dt(start), "projectId": project_id}
         if task_id:
@@ -430,6 +434,8 @@ class ClockifyClient:
             payload["tagIds"] = list(tag_ids)
         if description:
             payload["description"] = description
+        if billable is not None:
+            payload["billable"] = billable
         try:
             response = self._client.post(f"/workspaces/{workspace_id}/time-entries", json=payload)
         except httpx.ConnectError as exc:

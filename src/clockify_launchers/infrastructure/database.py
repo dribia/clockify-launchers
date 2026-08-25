@@ -135,11 +135,13 @@ class Database:
             for p in projects:
                 self._conn.execute(
                     """INSERT INTO projects
-                       (id, workspace_id, name, color, client_name, archived, last_seen_at)
-                       VALUES (?,?,?,?,?,?,?)
+                       (id, workspace_id, name, color, client_name, archived, billable,
+                        last_seen_at)
+                       VALUES (?,?,?,?,?,?,?,?)
                        ON CONFLICT(id) DO UPDATE SET workspace_id=excluded.workspace_id,
                          name=excluded.name, color=excluded.color,
                          client_name=excluded.client_name, archived=excluded.archived,
+                         billable=excluded.billable,
                          last_seen_at=excluded.last_seen_at""",
                     (
                         p.id,
@@ -148,6 +150,7 @@ class Database:
                         p.color,
                         p.client_name,
                         int(p.archived),
+                        int(p.billable_by_default),
                         _ts(now),
                     ),
                 )
@@ -187,6 +190,7 @@ class Database:
             color=row["color"],
             client_name=row["client_name"],
             archived=bool(row["archived"]),
+            billable_by_default=bool(row["billable"]),
         )
 
     def get_projects(self, workspace_id: str) -> list[Project]:
@@ -201,6 +205,7 @@ class Database:
                 color=r["color"],
                 client_name=r["client_name"],
                 archived=bool(r["archived"]),
+                billable_by_default=bool(r["billable"]),
             )
             for r in rows
         ]

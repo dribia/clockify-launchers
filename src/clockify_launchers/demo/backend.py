@@ -132,6 +132,7 @@ class FakeClockifyClient:
         task_id: str | None = None,
         tag_ids: tuple[str, ...] = (),
         description: str | None = None,
+        billable: bool | None = None,
     ) -> TimeEntry:
         self._check()
         entry = TimeEntry(

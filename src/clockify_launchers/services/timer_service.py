@@ -115,6 +115,7 @@ class TimerService:
                 return StartResult(StartOutcome.FAILED, msg, launcher)
 
         try:
+            project = self._db.get_project(target.project_id)
             entry = self._client.start_time_entry(
                 target.workspace_id,
                 target.project_id,
@@ -122,6 +123,7 @@ class TimerService:
                 task_id=target.task_id,
                 tag_ids=target.tag_ids,
                 description=target.description,
+                billable=project.billable_by_default if project is not None else None,
             )
         except AmbiguousResultError:
             return self._reconcile_ambiguous_start(launcher, t, switched)

@@ -143,6 +143,10 @@ MIGRATIONS: list[str] = [
         detail TEXT
     );
     """,
+    # 2: project billable-by-default flag (Clockify project setting)
+    """
+    ALTER TABLE projects ADD COLUMN billable INTEGER NOT NULL DEFAULT 0;
+    """,
 ]
 
 
