@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The top-bar indicator can show tracked times: the total tracked today
+  and the running entry's elapsed time, e.g. `5:32 Organic (0:05)`.
+  Enabled by default; a switch in Preferences (Background group) turns it
+  off.
+
+### Fixed
+
+- The top-bar indicator label ("Not tracking" / the tracked project) now
+  appears immediately after the indicator registers. Previously the label
+  was only pushed on the first change, so a freshly started app showed
+  only the icon.
+
 ### Fixed
 
 - The "start in background at login" preference now takes effect on

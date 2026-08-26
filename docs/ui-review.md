@@ -87,3 +87,10 @@ up to five times.
 - `preferences.png` and `preferences-narrow.png` (800x700): matching
   "Background" group between Management mode and Automation. No clipping or
   overlap at either size; the switch and subtitle render correctly narrow.
+
+## 2026-08-26 - indicator times switch in Preferences
+
+- `preferences.png` (1000x720): new "Show times in the top-bar indicator"
+  SwitchRow inside the Background group, under the login switch. Rows align,
+  subtitle example renders on one line, no clipping; narrow capture also
+  clean.

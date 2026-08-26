@@ -67,6 +67,12 @@ class PreferencesPage(Adw.PreferencesPage):
         )
         self.background_row.connect("notify::active", self._on_background_changed)
         background.add(self.background_row)
+        self.indicator_times_row = Adw.SwitchRow(
+            title="Show times in the top-bar indicator",
+            subtitle='Total tracked today and the running entry, e.g. "5:32 Organic (0:05)"',
+            active=config.indicator_show_times,
+        )
+        background.add(self.indicator_times_row)
         self.add(background)
 
         # Automation settings
@@ -111,7 +117,12 @@ class PreferencesPage(Adw.PreferencesPage):
             self.max_row,
         ):
             spin.connect("notify::value", self._on_setting_changed)
-        for switch in (self.notif_success, self.notif_failure, self.notif_additions):
+        for switch in (
+            self.notif_success,
+            self.notif_failure,
+            self.notif_additions,
+            self.indicator_times_row,
+        ):
             switch.connect("notify::active", self._on_setting_changed)
 
         # Maintenance
@@ -215,9 +226,11 @@ class PreferencesPage(Adw.PreferencesPage):
         config.notifications.timer_success = self.notif_success.get_active()
         config.notifications.timer_failure = self.notif_failure.get_active()
         config.notifications.background_additions = self.notif_additions.get_active()
+        config.indicator_show_times = self.indicator_times_row.get_active()
         self.context.save_config(config)
         if config.management_mode is not ManagementMode.MANUAL:
             self.context.systemd.apply_interval(config.policy.sync_interval_minutes)
+        self.window.refresh_timer_now()
         self.window.toast("Settings saved.")
         return False
 

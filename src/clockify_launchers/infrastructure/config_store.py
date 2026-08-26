@@ -55,6 +55,7 @@ class AppConfig:
     notifications: NotificationPrefs = field(default_factory=NotificationPrefs)
     onboarding_complete: bool = False
     start_in_background: bool = True
+    indicator_show_times: bool = True
     last_app_version: str = constants.VERSION
 
     def to_json(self) -> str:
@@ -102,6 +103,7 @@ class AppConfig:
             cfg.notifications = NotificationPrefs(**valid_n)
         cfg.onboarding_complete = bool(data.get("onboarding_complete", False))
         cfg.start_in_background = bool(data.get("start_in_background", True))
+        cfg.indicator_show_times = bool(data.get("indicator_show_times", True))
         cfg.last_app_version = str(data.get("last_app_version", constants.VERSION))
         return cfg
 
