@@ -389,26 +389,47 @@ class MainWindow(Adw.ApplicationWindow):
             return
         user_id = config.clockify_user_id
         workspace_id = config.active_workspace_id
+        show_times = config.indicator_show_times
 
-        def work() -> TimeEntry | None:
+        from datetime import UTC, datetime, timedelta
+
+        def work() -> tuple[TimeEntry | None, int | None]:
             client = self._get_client()
-            return client.get_in_progress_entry(workspace_id, user_id)
+            entry = client.get_in_progress_entry(workspace_id, user_id)
+            day_minutes: int | None = None
+            if show_times:
+                # Total tracked today (local midnight onward): completed
+                # entries plus the running entry's elapsed time.
+                now = datetime.now(tz=UTC)
+                midnight = (
+                    datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
+                )
+                entries = client.get_time_entries(workspace_id, user_id, midnight, now)
+                total = timedelta()
+                for item in entries:
+                    if item.end is not None:
+                        total += item.end - max(item.start, midnight)
+                if entry is not None:
+                    total += now - max(entry.start, midnight)
+                day_minutes = int(total.total_seconds() // 60)
+            return entry, day_minutes
 
-        def done(entry: TimeEntry | None) -> None:
+        def done(result: tuple[TimeEntry | None, int | None]) -> None:
+            entry, day_minutes = result
             if entry is None:
                 self.timer_bar.set_visible(False)
-                self.indicator.set_tracking(None)
+                self.indicator.set_tracking(None, day_minutes)
+                self.indicator.refresh_label()
                 return
             project = self.context.db.get_project(entry.project_id or "")
             name = project.name if project else (entry.description or "timer")
-            from datetime import UTC, datetime
-
             elapsed = datetime.now(tz=UTC) - entry.start
             minutes = int(elapsed.total_seconds() // 60)
-            hours, minutes = divmod(minutes, 60)
-            self.timer_label.set_label(f"Tracking {name} - {hours:d}:{minutes:02d} elapsed")
+            hours, mins = divmod(minutes, 60)
+            self.timer_label.set_label(f"Tracking {name} - {hours:d}:{mins:02d} elapsed")
             self.timer_bar.set_visible(True)
-            self.indicator.set_tracking(name)
+            self.indicator.set_tracking(name, day_minutes, minutes if show_times else None)
+            self.indicator.refresh_label()
 
         def error(_exc: Exception) -> None:
             self.timer_bar.set_visible(False)

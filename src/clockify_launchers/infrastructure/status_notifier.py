@@ -143,21 +143,40 @@ _MENU_INTROSPECTION_XML = """
 """
 
 
-def format_indicator_label(project_name: str | None) -> str:
+def format_duration_hm(minutes: int) -> str:
+    """Format whole minutes as H:MM (e.g. 332 -> "5:32")."""
+    minutes = max(0, minutes)
+    hours, mins = divmod(minutes, 60)
+    return f"{hours:d}:{mins:02d}"
+
+
+def format_indicator_label(
+    project_name: str | None,
+    day_minutes: int | None = None,
+    entry_minutes: int | None = None,
+) -> str:
     """Compute the top-bar label for the current timer state.
 
-    ``None`` means no timer is running. Names are flattened to a single
-    line and truncated so the top bar is never flooded.
+    ``None`` project means no timer is running. When ``day_minutes`` is
+    given, the label is prefixed with the total tracked today; when
+    ``entry_minutes`` is given (only meaningful while tracking), the
+    running entry's elapsed time is appended, e.g. ``5:32 Organic (0:05)``.
+    Names are flattened to a single line and truncated so the top bar is
+    never flooded.
     """
-    if project_name is None:
-        return IDLE_LABEL
-    name = " ".join(project_name.split())
-    if not name:
-        return IDLE_LABEL
-    max_len = 40
-    if len(name) > max_len:
-        name = name[: max_len - 1].rstrip() + "\u2026"
-    return f"\u25b6 {name}"
+    name = " ".join(project_name.split()) if project_name else ""
+    if name:
+        max_len = 40
+        if len(name) > max_len:
+            name = name[: max_len - 1].rstrip() + "\u2026"
+        label = f"\u25b6 {name}"
+        if entry_minutes is not None:
+            label += f" ({format_duration_hm(entry_minutes)})"
+    else:
+        label = IDLE_LABEL
+    if day_minutes is not None:
+        label = f"{format_duration_hm(day_minutes)} {label}"
+    return label
 
 
 class TimerIndicator:
@@ -202,14 +221,29 @@ class TimerIndicator:
         """
         return self._registered
 
-    def set_tracking(self, project_name: str | None) -> None:
-        """Update the displayed label; ``None`` means nothing is tracked."""
-        new_label = format_indicator_label(project_name)
-        tracking = project_name is not None and new_label != IDLE_LABEL
+    def set_tracking(
+        self,
+        project_name: str | None,
+        day_minutes: int | None = None,
+        entry_minutes: int | None = None,
+    ) -> None:
+        """Update the displayed label; ``None`` project means nothing is tracked."""
+        new_label = format_indicator_label(project_name, day_minutes, entry_minutes)
+        tracking = project_name is not None and bool(" ".join(project_name.split()))
         if new_label == self._label and tracking == self._tracking:
             return
         self._label = new_label
         self._tracking = tracking
+        self._emit_label_changed()
+
+    def refresh_label(self) -> None:
+        """Re-emit the current label unconditionally.
+
+        The shell extension keeps its own label state and can lose it
+        without any observable signal on our side (shell restarts, extension
+        reloads). Re-emitting on the periodic refresh makes the top bar
+        self-heal within one tick. Safe no-op when unpublished.
+        """
         self._emit_label_changed()
 
     # -- D-Bus lifecycle -----------------------------------------------------
@@ -285,6 +319,10 @@ class TimerIndicator:
             log.debug("StatusNotifierWatcher not available: %s", exc)
             return
         self._registered = True
+        # The shell extension applies the label on XAyatanaNewLabel signals;
+        # push the initial state so "Not tracking" shows right after
+        # registration instead of only after the first label change.
+        self._emit_label_changed()
 
     def unpublish(self) -> None:
         self._cleanup()
