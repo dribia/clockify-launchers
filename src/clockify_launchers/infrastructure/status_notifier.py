@@ -236,6 +236,16 @@ class TimerIndicator:
         self._tracking = tracking
         self._emit_label_changed()
 
+    def refresh_label(self) -> None:
+        """Re-emit the current label unconditionally.
+
+        The shell extension keeps its own label state and can lose it
+        without any observable signal on our side (shell restarts, extension
+        reloads). Re-emitting on the periodic refresh makes the top bar
+        self-heal within one tick. Safe no-op when unpublished.
+        """
+        self._emit_label_changed()
+
     # -- D-Bus lifecycle -----------------------------------------------------
 
     def publish(self) -> bool:

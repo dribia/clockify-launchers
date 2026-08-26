@@ -419,6 +419,7 @@ class MainWindow(Adw.ApplicationWindow):
             if entry is None:
                 self.timer_bar.set_visible(False)
                 self.indicator.set_tracking(None, day_minutes)
+                self.indicator.refresh_label()
                 return
             project = self.context.db.get_project(entry.project_id or "")
             name = project.name if project else (entry.description or "timer")
@@ -428,6 +429,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.timer_label.set_label(f"Tracking {name} - {hours:d}:{mins:02d} elapsed")
             self.timer_bar.set_visible(True)
             self.indicator.set_tracking(name, day_minutes, minutes if show_times else None)
+            self.indicator.refresh_label()
 
         def error(_exc: Exception) -> None:
             self.timer_bar.set_visible(False)

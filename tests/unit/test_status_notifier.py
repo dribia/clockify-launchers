@@ -70,6 +70,7 @@ class TestTimerIndicator:
     def test_set_tracking_without_bus_is_safe(self) -> None:
         indicator = TimerIndicator()
         indicator.set_tracking("Tank")  # not published: must not raise
+        indicator.refresh_label()  # unconditional re-emit: safe unpublished
         indicator.unpublish()  # idempotent without publish
 
     def test_properties_shape(self) -> None:

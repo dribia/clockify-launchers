@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appears immediately after the indicator registers. Previously the label
   was only pushed on the first change, so a freshly started app showed
   only the icon.
+- The indicator label also self-heals: it is re-emitted on registration
+  (covering screen lock/unlock and GNOME Shell restarts, which previously
+  could leave only the icon in the top bar) and unconditionally on every
+  periodic refresh.
 
 ### Fixed
 
