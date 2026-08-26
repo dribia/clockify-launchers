@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- The "start in background at login" preference now takes effect on
+  existing installations: the GUI reconciles the autostart entry with the
+  configured preference at startup, so upgrades that enabled the default
+  (or an externally removed entry) no longer require toggling the switch
+  in Preferences.
+
 ## [0.3.0] - 2026-08-25
 
 ### Fixed

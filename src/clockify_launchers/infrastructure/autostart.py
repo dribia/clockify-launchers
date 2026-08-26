@@ -64,3 +64,23 @@ def apply(paths: XdgPaths, enabled: bool) -> None:
         install(paths)
     else:
         remove(paths)
+
+
+def reconcile(paths: XdgPaths, enabled: bool) -> None:
+    """Make the on-disk autostart entry match the preference (idempotent).
+
+    Called at GUI startup so upgrades that changed the default, or an
+    externally deleted/stale entry, converge to the configured state
+    without requiring the user to toggle the preference. Only writes when
+    the current state differs.
+    """
+    path = autostart_path(paths)
+    if enabled:
+        try:
+            current = path.read_text(encoding="utf-8")
+        except OSError:
+            current = None
+        if current != _CONTENT:
+            install(paths)
+    elif path.is_symlink() or path.is_file():
+        remove(paths)

@@ -67,6 +67,38 @@ def test_apply_toggles(tmp_path: Path) -> None:
     assert not autostart.is_installed(paths)
 
 
+def test_reconcile_installs_missing_entry_when_enabled(tmp_path: Path) -> None:
+    # Upgrade scenario: config says enabled but the entry was never written.
+    paths = _paths(tmp_path)
+    autostart.reconcile(paths, True)
+    assert autostart.is_installed(paths)
+
+
+def test_reconcile_rewrites_stale_content(tmp_path: Path) -> None:
+    paths = _paths(tmp_path)
+    path = autostart.autostart_path(paths)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("[Desktop Entry]\nExec=old-command\n", encoding="utf-8")
+    autostart.reconcile(paths, True)
+    assert "gui --hidden" in path.read_text(encoding="utf-8")
+
+
+def test_reconcile_no_write_when_current(tmp_path: Path) -> None:
+    paths = _paths(tmp_path)
+    autostart.install(paths)
+    before = autostart.autostart_path(paths).stat().st_mtime_ns
+    autostart.reconcile(paths, True)
+    assert autostart.autostart_path(paths).stat().st_mtime_ns == before
+
+
+def test_reconcile_removes_when_disabled(tmp_path: Path) -> None:
+    paths = _paths(tmp_path)
+    autostart.install(paths)
+    autostart.reconcile(paths, False)
+    assert not autostart.is_installed(paths)
+    autostart.reconcile(paths, False)  # idempotent when already absent
+
+
 def test_config_start_in_background_defaults_true() -> None:
     assert AppConfig().start_in_background is True
     # Older configs without the key default to enabled.

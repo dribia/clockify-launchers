@@ -85,6 +85,7 @@ class ClockifyLaunchersApp(Adw.Application):
 
         if self.context.config.onboarding_complete:
             self._window = MainWindow(self, self.context)
+            self._reconcile_autostart()
         else:
             self._window = OnboardingWindow(self, self.context)
         size = os.environ.get("CLOCKIFY_LAUNCHERS_WINDOW_SIZE", "")
@@ -104,6 +105,26 @@ class ClockifyLaunchersApp(Adw.Application):
         else:
             self._window.present()
         GLib.idle_add(self._write_ready_file)
+
+    def _reconcile_autostart(self) -> None:
+        """Converge the autostart entry with the preference off the main thread.
+
+        Upgrades can change the config default (or the entry can be removed
+        externally); without this, the preference and the on-disk state only
+        converge when the user toggles the switch.
+        """
+        if self.context.demo:
+            return
+        from clockify_launchers.infrastructure import autostart
+        from clockify_launchers.ui.workers import run_async
+
+        paths = self.context.paths
+        enabled = self.context.config.start_in_background
+        run_async(
+            lambda: autostart.reconcile(paths, enabled),
+            lambda _result: None,
+            lambda exc: log.warning("could not reconcile autostart entry: %s", exc),
+        )
 
     @staticmethod
     def _get_display() -> Gdk.Display | None:
