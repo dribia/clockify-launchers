@@ -70,8 +70,28 @@ class TestTimerIndicator:
     def test_set_tracking_without_bus_is_safe(self) -> None:
         indicator = TimerIndicator()
         indicator.set_tracking("Tank")  # not published: must not raise
-        indicator.refresh_label()  # unconditional re-emit: safe unpublished
+        indicator.refresh_label()  # heartbeat re-emit: safe unpublished
         indicator.unpublish()  # idempotent without publish
+
+    def test_refresh_label_alternates_invisible_heartbeat(self) -> None:
+        """The wire label must differ on consecutive heartbeats.
+
+        The shell extension drops value-equal label updates before they
+        reach the widget (ADR 0017), so the periodic refresh alternates a
+        zero-width suffix. The visible label is unchanged.
+        """
+        indicator = TimerIndicator()
+        indicator.set_tracking("Tank")
+        base = indicator.properties()["XAyatanaLabel"].get_string()
+        indicator.refresh_label()
+        first = indicator.properties()["XAyatanaLabel"].get_string()
+        indicator.refresh_label()
+        second = indicator.properties()["XAyatanaLabel"].get_string()
+        assert first != base
+        assert second == base
+        assert first.replace("\u200b", "") == base
+        # The public label (used by app logic) never carries the suffix.
+        assert indicator.label == "\u25b6 Tank"
 
     def test_properties_shape(self) -> None:
         indicator = TimerIndicator()

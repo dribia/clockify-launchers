@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- The top-bar indicator label no longer disappears permanently. The GNOME
+  Shell appindicator extension drops value-equal label updates and can
+  silently lose its label actor, so the plain periodic re-emit added in
+  0.4.0 never reached the widget. The periodic refresh now alternates an
+  invisible zero-width suffix in the emitted label ("heartbeat"), which
+  always passes the extension's equality check and forces a re-render,
+  self-healing the top bar within one 30-second tick (ADR 0017). The
+  refresh also no longer fires tooltip/menu signals every tick.
+
 ## [0.4.0] - 2026-08-26
 
 ### Added

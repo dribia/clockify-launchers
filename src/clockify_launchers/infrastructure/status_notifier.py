@@ -205,12 +205,25 @@ class TimerIndicator:
         self._menu_revision = 1
         self._published = False
         self._registered = False
+        self._heartbeat = False
 
     # -- state -------------------------------------------------------------
 
     @property
     def label(self) -> str:
         return self._label
+
+    def _wire_label(self) -> str:
+        """The label as sent over D-Bus.
+
+        A zero-width space is appended on alternating heartbeats so periodic
+        refreshes always *differ* from the shell extension's cached value:
+        the extension drops value-equal updates before they reach the
+        widget, and the widget is known to occasionally lose its label actor
+        (see ADR 0017). The suffix is invisible, so the top bar text never
+        visibly changes.
+        """
+        return self._label + ("\u200b" if self._heartbeat else "")
 
     @property
     def registered(self) -> bool:
@@ -237,14 +250,16 @@ class TimerIndicator:
         self._emit_label_changed()
 
     def refresh_label(self) -> None:
-        """Re-emit the current label unconditionally.
+        """Heartbeat: re-assert the label so the top bar self-heals.
 
-        The shell extension keeps its own label state and can lose it
-        without any observable signal on our side (shell restarts, extension
-        reloads). Re-emitting on the periodic refresh makes the top bar
-        self-heal within one tick. Safe no-op when unpublished.
+        Called on the periodic refresh. Alternates the invisible wire-label
+        suffix so the update survives the extension's equality check and
+        forces the widget to re-render (re-adding a dropped label actor).
+        Only the label signal is emitted; tooltip/menu churn is avoided.
+        Safe no-op when unpublished.
         """
-        self._emit_label_changed()
+        self._heartbeat = not self._heartbeat
+        self._emit_label_signal()
 
     # -- D-Bus lifecycle -----------------------------------------------------
 
@@ -358,7 +373,7 @@ class TimerIndicator:
             "ToolTip": GLib.Variant(
                 "(sa(iiay)ss)", (constants.APP_ID, [], constants.APP_NAME, self._label)
             ),
-            "XAyatanaLabel": GLib.Variant("s", self._label),
+            "XAyatanaLabel": GLib.Variant("s", self._wire_label()),
             "XAyatanaLabelGuide": GLib.Variant("s", ""),
         }
 
@@ -386,7 +401,8 @@ class TimerIndicator:
             self._on_activate()
         invocation.return_value(None)
 
-    def _emit_label_changed(self) -> None:
+    def _emit_label_signal(self) -> None:
+        """Emit only XAyatanaNewLabel with the current wire label."""
         if self._connection is None:
             return
         try:
@@ -395,8 +411,16 @@ class TimerIndicator:
                 OBJECT_PATH,
                 ITEM_IFACE,
                 "XAyatanaNewLabel",
-                GLib.Variant("(ss)", (self._label, "")),
+                GLib.Variant("(ss)", (self._wire_label(), "")),
             )
+        except GLib.Error as exc:  # pragma: no cover - bus gone
+            log.debug("could not emit indicator signal: %s", exc)
+
+    def _emit_label_changed(self) -> None:
+        if self._connection is None:
+            return
+        self._emit_label_signal()
+        try:
             self._connection.emit_signal(None, OBJECT_PATH, ITEM_IFACE, "NewToolTip", None)
             self._menu_revision += 1
             self._connection.emit_signal(
