@@ -32,18 +32,21 @@ class TestFormatIndicatorLabel:
     def test_short_names_are_not_truncated(self) -> None:
         assert format_indicator_label("A" * 40) == "\u25b6 " + "A" * 40
 
-    def test_day_total_prefixes_idle_label(self) -> None:
-        assert format_indicator_label(None, day_minutes=332) == f"5:32 {IDLE_LABEL}"
-        assert format_indicator_label(None, day_minutes=0) == f"0:00 {IDLE_LABEL}"
+    def test_day_total_appended_to_idle_label(self) -> None:
+        assert format_indicator_label(None, day_minutes=331) == f"{IDLE_LABEL} (5:31)"
+        assert format_indicator_label(None, day_minutes=0) == f"{IDLE_LABEL} (0:00)"
 
     def test_tracking_with_day_total_and_entry_elapsed(self) -> None:
         assert (
-            format_indicator_label("Organic", day_minutes=332, entry_minutes=5)
-            == "5:32 \u25b6 Organic (0:05)"
+            format_indicator_label("Agenda", day_minutes=331, entry_minutes=32)
+            == "\u25b6 Agenda (0:32 / 5:31)"
         )
 
     def test_entry_elapsed_without_day_total(self) -> None:
         assert format_indicator_label("Tank", entry_minutes=61) == "\u25b6 Tank (1:01)"
+
+    def test_day_total_without_entry_elapsed_while_tracking(self) -> None:
+        assert format_indicator_label("Tank", day_minutes=331) == "\u25b6 Tank (5:31)"
 
     def test_negative_minutes_clamped(self) -> None:
         from clockify_launchers.infrastructure.status_notifier import format_duration_hm
@@ -70,8 +73,28 @@ class TestTimerIndicator:
     def test_set_tracking_without_bus_is_safe(self) -> None:
         indicator = TimerIndicator()
         indicator.set_tracking("Tank")  # not published: must not raise
-        indicator.refresh_label()  # unconditional re-emit: safe unpublished
+        indicator.refresh_label()  # heartbeat re-emit: safe unpublished
         indicator.unpublish()  # idempotent without publish
+
+    def test_refresh_label_alternates_invisible_heartbeat(self) -> None:
+        """The wire label must differ on consecutive heartbeats.
+
+        The shell extension drops value-equal label updates before they
+        reach the widget (ADR 0017), so the periodic refresh alternates a
+        zero-width suffix. The visible label is unchanged.
+        """
+        indicator = TimerIndicator()
+        indicator.set_tracking("Tank")
+        base = indicator.properties()["XAyatanaLabel"].get_string()
+        indicator.refresh_label()
+        first = indicator.properties()["XAyatanaLabel"].get_string()
+        indicator.refresh_label()
+        second = indicator.properties()["XAyatanaLabel"].get_string()
+        assert first != base
+        assert second == base
+        assert first.replace("\u200b", "") == base
+        # The public label (used by app logic) never carries the suffix.
+        assert indicator.label == "\u25b6 Tank"
 
     def test_properties_shape(self) -> None:
         indicator = TimerIndicator()
