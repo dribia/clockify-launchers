@@ -33,6 +33,11 @@
     <binary>clockify-launchers</binary>
   </provides>
   <releases>
+    <release version="0.4.2" date="2026-08-27">
+      <description>
+        <p>Release 0.4.2.</p>
+      </description>
+    </release>
     <release version="0.4.1" date="2026-08-27">
       <description>
         <p>Release 0.4.1.</p>
