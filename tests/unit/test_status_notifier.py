@@ -32,18 +32,21 @@ class TestFormatIndicatorLabel:
     def test_short_names_are_not_truncated(self) -> None:
         assert format_indicator_label("A" * 40) == "\u25b6 " + "A" * 40
 
-    def test_day_total_prefixes_idle_label(self) -> None:
-        assert format_indicator_label(None, day_minutes=332) == f"5:32 {IDLE_LABEL}"
-        assert format_indicator_label(None, day_minutes=0) == f"0:00 {IDLE_LABEL}"
+    def test_day_total_appended_to_idle_label(self) -> None:
+        assert format_indicator_label(None, day_minutes=331) == f"{IDLE_LABEL} (5:31)"
+        assert format_indicator_label(None, day_minutes=0) == f"{IDLE_LABEL} (0:00)"
 
     def test_tracking_with_day_total_and_entry_elapsed(self) -> None:
         assert (
-            format_indicator_label("Organic", day_minutes=332, entry_minutes=5)
-            == "5:32 \u25b6 Organic (0:05)"
+            format_indicator_label("Agenda", day_minutes=331, entry_minutes=32)
+            == "\u25b6 Agenda (0:32 / 5:31)"
         )
 
     def test_entry_elapsed_without_day_total(self) -> None:
         assert format_indicator_label("Tank", entry_minutes=61) == "\u25b6 Tank (1:01)"
+
+    def test_day_total_without_entry_elapsed_while_tracking(self) -> None:
+        assert format_indicator_label("Tank", day_minutes=331) == "\u25b6 Tank (5:31)"
 
     def test_negative_minutes_clamped(self) -> None:
         from clockify_launchers.infrastructure.status_notifier import format_duration_hm

@@ -69,7 +69,7 @@ class PreferencesPage(Adw.PreferencesPage):
         background.add(self.background_row)
         self.indicator_times_row = Adw.SwitchRow(
             title="Show times in the top-bar indicator",
-            subtitle='Total tracked today and the running entry, e.g. "5:32 Organic (0:05)"',
+            subtitle='The running entry and the total tracked today, e.g. "Organic (0:05 / 5:32)"',
             active=config.indicator_show_times,
         )
         background.add(self.indicator_times_row)

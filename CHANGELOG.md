@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Indicator label layout: times now render inside one trailing
+  parenthesis - while tracking `▶ Agenda (0:32 / 5:31)` (running entry /
+  total today), when idle `Not tracking (5:31)` - instead of prefixing
+  the day total.
+
 ### Fixed
 
 - The top-bar indicator label no longer disappears permanently. The GNOME

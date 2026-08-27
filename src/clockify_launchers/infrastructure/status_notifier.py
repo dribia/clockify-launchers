@@ -157,12 +157,12 @@ def format_indicator_label(
 ) -> str:
     """Compute the top-bar label for the current timer state.
 
-    ``None`` project means no timer is running. When ``day_minutes`` is
-    given, the label is prefixed with the total tracked today; when
-    ``entry_minutes`` is given (only meaningful while tracking), the
-    running entry's elapsed time is appended, e.g. ``5:32 Organic (0:05)``.
-    Names are flattened to a single line and truncated so the top bar is
-    never flooded.
+    ``None`` project means no timer is running. Times render inside one
+    trailing parenthesis: while tracking, the running entry's elapsed time
+    and the total tracked today, e.g. ``\u25b6 Agenda (0:32 / 5:31)``;
+    when idle, just the day total, e.g. ``Not tracking (5:31)``. Names are
+    flattened to a single line and truncated so the top bar is never
+    flooded.
     """
     name = " ".join(project_name.split()) if project_name else ""
     if name:
@@ -170,12 +170,16 @@ def format_indicator_label(
         if len(name) > max_len:
             name = name[: max_len - 1].rstrip() + "\u2026"
         label = f"\u25b6 {name}"
-        if entry_minutes is not None:
+        if entry_minutes is not None and day_minutes is not None:
+            label += f" ({format_duration_hm(entry_minutes)} / {format_duration_hm(day_minutes)})"
+        elif entry_minutes is not None:
             label += f" ({format_duration_hm(entry_minutes)})"
-    else:
-        label = IDLE_LABEL
+        elif day_minutes is not None:
+            label += f" ({format_duration_hm(day_minutes)})"
+        return label
+    label = IDLE_LABEL
     if day_minutes is not None:
-        label = f"{format_duration_hm(day_minutes)} {label}"
+        label += f" ({format_duration_hm(day_minutes)})"
     return label
 
 
