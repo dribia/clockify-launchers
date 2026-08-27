@@ -414,9 +414,7 @@ class ClockifyClient:
             params={"start": format_dt(start - pad), "end": format_dt(end + pad)},
         )
         entries = [_parse_time_entry(e) for e in raw if isinstance(e, dict)]
-        return [
-            e for e in entries if e.start <= end and (e.end is None or e.end >= start)
-        ]
+        return [e for e in entries if e.start <= end and (e.end is None or e.end >= start)]
 
     def get_in_progress_entry(self, workspace_id: str, user_id: str) -> TimeEntry | None:
         data = self._get(
