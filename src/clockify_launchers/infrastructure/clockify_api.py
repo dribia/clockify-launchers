@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import random
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 from urllib.parse import urlsplit
 
@@ -398,11 +398,23 @@ class ClockifyClient:
     def get_time_entries(
         self, workspace_id: str, user_id: str, start: datetime, end: datetime
     ) -> list[TimeEntry]:
+        """Return the user's time entries overlapping ``[start, end]``.
+
+        Clockify interprets the ``start``/``end`` query parameters in the
+        user's profile timezone even though the documented format is UTC
+        (observed live: with a +02:00 profile, ``end=now`` excluded every
+        entry of the last two hours). The request window is therefore
+        padded by a full day on each side - larger than any UTC offset -
+        and the exact bounds are applied client-side, so the result is
+        correct regardless of how the server reads the parameters.
+        """
+        pad = timedelta(days=1)
         raw = self._paginate(
             f"/workspaces/{workspace_id}/user/{user_id}/time-entries",
-            params={"start": format_dt(start), "end": format_dt(end)},
+            params={"start": format_dt(start - pad), "end": format_dt(end + pad)},
         )
-        return [_parse_time_entry(e) for e in raw if isinstance(e, dict)]
+        entries = [_parse_time_entry(e) for e in raw if isinstance(e, dict)]
+        return [e for e in entries if e.start <= end and (e.end is None or e.end >= start)]
 
     def get_in_progress_entry(self, workspace_id: str, user_id: str) -> TimeEntry | None:
         data = self._get(
