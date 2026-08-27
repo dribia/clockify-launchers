@@ -161,8 +161,51 @@ def test_get_time_entries_paginates_and_sends_page_params():
     assert len(entries) == PAGE_SIZE + 2
     assert [p["page"] for p in seen_params] == ["1", "2"]
     assert all(p["page-size"] == str(PAGE_SIZE) for p in seen_params)
-    assert seen_params[0]["start"] == "2026-06-01T00:00:00Z"
-    assert seen_params[0]["end"] == "2026-07-31T00:00:00Z"
+    # The request window is padded by one day on each side because Clockify
+    # interprets the parameters in the user's profile timezone; exact bounds
+    # are applied client-side.
+    assert seen_params[0]["start"] == "2026-05-31T00:00:00Z"
+    assert seen_params[0]["end"] == "2026-08-01T00:00:00Z"
+
+
+def test_get_time_entries_filters_to_overlap_client_side():
+    payload = [
+        {  # ends before the window: dropped
+            "id": "before",
+            "workspaceId": "ws1",
+            "projectId": "p1",
+            "timeInterval": {"start": "2026-05-30T08:00:00Z", "end": "2026-05-31T09:00:00Z"},
+        },
+        {  # straddles the window start: kept
+            "id": "straddle",
+            "workspaceId": "ws1",
+            "projectId": "p1",
+            "timeInterval": {"start": "2026-05-31T23:00:00Z", "end": "2026-06-01T01:00:00Z"},
+        },
+        {  # inside: kept
+            "id": "inside",
+            "workspaceId": "ws1",
+            "projectId": "p1",
+            "timeInterval": {"start": "2026-06-10T10:00:00Z", "end": "2026-06-10T11:00:00Z"},
+        },
+        {  # running, started inside the window: kept
+            "id": "running",
+            "workspaceId": "ws1",
+            "projectId": "p1",
+            "timeInterval": {"start": "2026-06-15T10:00:00Z", "end": None},
+        },
+        {  # starts after the window end: dropped
+            "id": "after",
+            "workspaceId": "ws1",
+            "projectId": "p1",
+            "timeInterval": {"start": "2026-07-02T10:00:00Z", "end": "2026-07-02T11:00:00Z"},
+        },
+    ]
+    client, _ = make_client(lambda request: json_response(payload))
+    start = datetime(2026, 6, 1, tzinfo=UTC)
+    end = datetime(2026, 7, 1, tzinfo=UTC)
+    entries = client.get_time_entries("ws1", "user-1", start, end)
+    assert [e.id for e in entries] == ["straddle", "inside", "running"]
 
 
 def test_pagination_max_pages_guard():

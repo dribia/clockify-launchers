@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- The indicator's day total no longer reads 0:00 when time was tracked.
+  Clockify interprets the time-entry query's `start`/`end` parameters in
+  the user's profile timezone (despite the documented UTC format), which
+  silently excluded up to a UTC-offset's worth of recent entries - the
+  whole day for the indicator, and the most recent hours from sync's
+  activity lookback. Time-entry queries now pad the requested window by a
+  day on each side and apply the exact bounds client-side, making results
+  correct regardless of the server's timezone interpretation.
+
 ## [0.4.1] - 2026-08-27
 
 ### Changed
