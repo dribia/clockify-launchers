@@ -107,23 +107,37 @@ class ClockifyLaunchersApp(Adw.Application):
         GLib.idle_add(self._write_ready_file)
 
     def _reconcile_autostart(self) -> None:
-        """Converge the autostart entry with the preference off the main thread.
+        """Converge autostart and the systemd timer with the preferences.
 
-        Upgrades can change the config default (or the entry can be removed
-        externally); without this, the preference and the on-disk state only
-        converge when the user toggles the switch.
+        Runs off the main thread at startup. Autostart: upgrades can change
+        the config default or the entry can be removed externally. Timer:
+        reloading the shipped units and re-arming the timer heals the
+        eventless-timer state (ADR 0018) and makes upgraded unit
+        definitions take effect without a reboot.
         """
         if self.context.demo:
             return
+        from clockify_launchers.domain.models import ManagementMode
         from clockify_launchers.infrastructure import autostart
         from clockify_launchers.ui.workers import run_async
 
         paths = self.context.paths
-        enabled = self.context.config.start_in_background
+        config = self.context.config
+        background = config.start_in_background
+        mode = config.management_mode
+        interval = config.policy.sync_interval_minutes
+
+        def work() -> None:
+            autostart.reconcile(paths, background)
+            if mode is ManagementMode.MANUAL:
+                self.context.systemd.disable_timer()
+            else:
+                self.context.systemd.reconcile(True, interval)
+
         run_async(
-            lambda: autostart.reconcile(paths, enabled),
+            work,
             lambda _result: None,
-            lambda exc: log.warning("could not reconcile autostart entry: %s", exc),
+            lambda exc: log.warning("could not reconcile autostart/timer state: %s", exc),
         )
 
     @staticmethod

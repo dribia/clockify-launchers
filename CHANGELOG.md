@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Background sync (Assisted/Autopilot) no longer silently stops running:
+  the systemd timer could become permanently eventless ("active" but with
+  no next elapse) when its boot-time trigger was consumed without the
+  service activating - automatic additions then only appeared after
+  manual syncs or app restarts. The timer now carries an `OnActiveSec`
+  anchor so every enable/restart re-arms it within one interval, the
+  service no longer orders after `graphical-session.target` (a stalled
+  ordering could consume the boot trigger), and the app reconciles the
+  timer (reload, enable, restart) at every startup (ADR 0018).
+
 ## [0.4.2] - 2026-08-27
 
 ### Fixed

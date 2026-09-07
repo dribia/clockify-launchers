@@ -181,11 +181,13 @@ class PreferencesPage(Adw.PreferencesPage):
             return
         config.management_mode = mode
         self.context.save_config(config)
-        if mode is ManagementMode.MANUAL:
-            self.context.systemd.disable_timer()
-        else:
-            self.context.systemd.enable_timer()
-            self.context.systemd.apply_interval(config.policy.sync_interval_minutes)
+        if self.context.demo:
+            self.window.toast(f"Management mode set to {mode.value.capitalize()}.")
+            self.window._update_status_bar()
+            return
+        self.context.systemd.reconcile(
+            mode is not ManagementMode.MANUAL, config.policy.sync_interval_minutes
+        )
         self.window.toast(f"Management mode set to {mode.value.capitalize()}.")
         self.window._update_status_bar()
 
@@ -228,7 +230,7 @@ class PreferencesPage(Adw.PreferencesPage):
         config.notifications.background_additions = self.notif_additions.get_active()
         config.indicator_show_times = self.indicator_times_row.get_active()
         self.context.save_config(config)
-        if config.management_mode is not ManagementMode.MANUAL:
+        if config.management_mode is not ManagementMode.MANUAL and not self.context.demo:
             self.context.systemd.apply_interval(config.policy.sync_interval_minutes)
         self.window.refresh_timer_now()
         self.window.toast("Settings saved.")

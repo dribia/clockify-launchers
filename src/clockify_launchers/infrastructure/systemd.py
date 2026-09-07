@@ -49,6 +49,22 @@ class SystemdManager:
         ok = self._systemctl("daemon-reload")
         return self._systemctl("restart", constants.SYSTEMD_TIMER) and ok
 
+    def reconcile(self, enabled: bool, minutes: int) -> bool:
+        """Converge the timer with the mode and interval, re-arming it.
+
+        Called at application startup (and after mode changes): reloads the
+        shipped unit definitions, then enables + restarts the timer so the
+        ``OnActiveSec`` anchor arms a sync even when the
+        ``OnUnitActiveSec`` chain is broken (service never activated in
+        this session - see ADR 0018). Disabling is idempotent.
+        """
+        if not enabled:
+            return self._systemctl("disable", "--now", constants.SYSTEMD_TIMER)
+        self.write_interval_dropin(minutes)
+        ok = self._systemctl("daemon-reload")
+        ok = self._systemctl("enable", "--now", constants.SYSTEMD_TIMER) and ok
+        return self._systemctl("restart", constants.SYSTEMD_TIMER) and ok
+
     def enable_timer(self) -> bool:
         return self._systemctl("enable", "--now", constants.SYSTEMD_TIMER)
 
