@@ -296,8 +296,7 @@ class OnboardingWindow(Adw.ApplicationWindow):
 
                 autostart.apply(self.context.paths, start_in_background)
             if mode is not ManagementMode.MANUAL and not self.context.demo:
-                self.context.systemd.enable_timer()
-                self.context.systemd.apply_interval(config.policy.sync_interval_minutes)
+                self.context.systemd.reconcile(True, config.policy.sync_interval_minutes)
 
         def done(_result: object) -> None:
             from clockify_launchers.application import ClockifyLaunchersApp

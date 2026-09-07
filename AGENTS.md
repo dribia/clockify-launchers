@@ -869,12 +869,16 @@ Service concept:
 ```ini
 [Unit]
 Description=Synchronize Clockify launchers
-After=graphical-session.target
 
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/clockify-launchers sync --background
 ```
+
+The service must not order after `graphical-session.target`: the sync
+command already handles a not-ready session by recording a result and
+changing nothing, and a stalled ordering can consume the boot trigger
+(ADR 0018).
 
 Timer concept:
 
@@ -884,6 +888,7 @@ Description=Periodically synchronize Clockify launchers
 
 [Timer]
 OnStartupSec=2min
+OnActiveSec=30min
 OnUnitActiveSec=30min
 AccuracySec=1min
 RandomizedDelaySec=30s
@@ -892,6 +897,12 @@ Unit=clockify-launchers-sync.service
 [Install]
 WantedBy=timers.target
 ```
+
+`OnUnitActiveSec` only arms after the service has activated once in the
+current session, so the `OnActiveSec` anchor is required: it guarantees a
+sync within one interval of every timer (re)start, keeping the timer
+from ever becoming eventless (ADR 0018). The application also
+reconciles the timer (daemon-reload, enable, restart) at startup.
 
 When the user changes the interval, write a user timer drop-in atomically:
 

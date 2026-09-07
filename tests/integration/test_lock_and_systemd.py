@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -65,3 +66,43 @@ def test_apply_interval_and_enable_disable_argv(tmp_path):
     runner.calls.clear()
     assert mgr.disable_timer()
     assert runner.calls == [["systemctl", "--user", "disable", "--now", constants.SYSTEMD_TIMER]]
+
+
+def test_reconcile_enabled_argv(tmp_path):
+    runner = RecordingRunner()
+    mgr = SystemdManager(tmp_path / "systemd" / "user", runner=runner)
+    assert mgr.reconcile(True, 45)
+    assert runner.calls == [
+        ["systemctl", "--user", "daemon-reload"],
+        ["systemctl", "--user", "enable", "--now", constants.SYSTEMD_TIMER],
+        ["systemctl", "--user", "restart", constants.SYSTEMD_TIMER],
+    ]
+    dropin = tmp_path / "systemd" / "user" / f"{constants.SYSTEMD_TIMER}.d" / "override.conf"
+    assert dropin.read_text() == "[Timer]\nOnUnitActiveSec=\nOnUnitActiveSec=45min\n"
+
+
+def test_reconcile_disabled_argv(tmp_path):
+    runner = RecordingRunner()
+    mgr = SystemdManager(tmp_path / "systemd" / "user", runner=runner)
+    assert mgr.reconcile(False, 45)
+    # Disabling must not touch the drop-in or run a reload.
+    assert runner.calls == [["systemctl", "--user", "disable", "--now", constants.SYSTEMD_TIMER]]
+
+
+def test_shipped_units_have_arming_anchors():
+    """ADR 0018: the timer must re-arm without a prior service activation.
+
+    - ``OnActiveSec`` anchors a sync to every (re)start of the timer, so a
+      restart can never leave it eventless.
+    - The service must not order after ``graphical-session.target``: a
+      stalled ordering consumes the boot trigger without activating the
+      service, stillborn-ing the ``OnUnitActiveSec`` chain.
+    """
+    repo_root = Path(__file__).resolve().parents[2]
+    timer = (repo_root / "data" / "systemd" / "clockify-launchers-sync.timer").read_text()
+    service = (repo_root / "data" / "systemd" / "clockify-launchers-sync.service").read_text()
+    assert "OnStartupSec=" in timer
+    assert "OnActiveSec=" in timer
+    assert "OnUnitActiveSec=" in timer
+    assert "After=graphical-session.target" not in service
+    assert "ExecStart=/usr/bin/clockify-launchers sync --background" in service
