@@ -53,6 +53,8 @@ class SyncResult:
     added: tuple[Launcher, ...] = ()
     removed: tuple[Launcher, ...] = ()
     suggestions_created: int = 0
+    # Eligible candidates the automatic-launcher cap left unadded.
+    blocked: tuple[Candidate, ...] = ()
     detail: str = ""
     safe_to_remove: bool = True
 
@@ -269,6 +271,7 @@ class SyncService:
             added=tuple(added),
             removed=tuple(removed),
             suggestions_created=suggestions_created,
+            blocked=plan.blocked_additions,
             detail=detail,
             safe_to_remove=health.safe_to_remove,
         )

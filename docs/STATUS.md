@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-07-31
+Updated: 2026-10-20
 
 ## Completed
 
@@ -39,6 +39,15 @@ Updated: 2026-07-31
   the indicator stays dormant and window close quits as before. Unit tests
   plus a private-bus integration round trip
   (`tests/integration/test_status_notifier_bus.py`).
+- **Cap-aware autopilot + self-arming timer** (ADR 0019): reconciliation
+  plans removals before additions so a freed automatic slot is reused in
+  the same run; cap-blocked candidates are surfaced (sync notes, GUI
+  toast, Suggestions "Waiting for a free slot" group) instead of being
+  silently dropped. The interval drop-in re-declares the timer anchors
+  (systemd's empty `On*Sec=` reset wipes the whole shared spec list, which
+  left the timer eventless across reboots), startup reconcile heals legacy
+  drop-ins, an unarmed-but-active timer is recorded as a `timer-unarmed`
+  activity event, and `doctor` fails on it in Assisted/Autopilot modes.
 
 `make verify` passes from a clean checkout: lint, typecheck (ty, 0 errors),
 222 unit/contract/integration tests, data validation, UI capture, 8 AT-SPI

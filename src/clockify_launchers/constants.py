@@ -23,6 +23,14 @@ LAUNCHER_ID_KEY = "X-Clockify-Launchers-Id"
 SYSTEMD_SERVICE = "clockify-launchers-sync.service"
 SYSTEMD_TIMER = "clockify-launchers-sync.timer"
 
+# Timer re-arm anchors (ADR 0018). data/systemd/clockify-launchers-sync.timer
+# ships the same values; tests cross-check the two so they cannot drift.
+# The interval drop-in must re-declare them because an empty ``On*Sec=``
+# assignment resets systemd's shared timer-spec list (see ADR 0019).
+TIMER_ON_STARTUP_MINUTES = 2
+TIMER_ACCURACY_SECONDS = 60
+TIMER_RANDOMIZED_DELAY_SECONDS = 30
+
 CONFIG_DIR_NAME = "clockify-launchers"
 DATA_DIR_NAME = "clockify-launchers"
 

@@ -5,6 +5,30 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Automatic additions are no longer silently blocked by a full
+  automatic-launcher cap: a sync run now plans removals first, so a slot
+  freed by a stale-launcher removal is usable by additions in the same
+  run (previously the freed slot waited for a next sync that might never
+  come). When eligible candidates remain unadded because the cap is full,
+  the sync records the reason, the GUI toast and `clockify-launchers sync`
+  report it, and the Suggestions page lists the waiting candidates under
+  "Waiting for a free slot".
+- The background sync timer no longer dies after a reboot: the interval
+  drop-in written by the app used an empty `OnUnitActiveSec=` reset,
+  which in systemd clears the shared spec list of ALL `On*Sec` directives
+  - wiping the ADR 0018 re-arm anchors from the shipped unit and leaving
+  the timer permanently eventless ("active" but never firing) until the
+  app was started. The drop-in now re-declares the anchors alongside the
+  custom interval, startup reconcile rewrites (and thereby heals) legacy
+  broken drop-ins, the app records a `timer-unarmed` activity event if
+  the timer is active but not armed, and `doctor` fails on an
+  active-but-unarmed timer in Assisted/Autopilot modes instead of
+  reporting it healthy (ADR 0019).
+
 ## [0.4.3] - 2026-09-07
 
 ### Fixed

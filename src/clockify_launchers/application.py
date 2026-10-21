@@ -132,7 +132,26 @@ class ClockifyLaunchersApp(Adw.Application):
             if mode is ManagementMode.MANUAL:
                 self.context.systemd.disable_timer()
             else:
-                self.context.systemd.reconcile(True, interval)
+                ok = self.context.systemd.reconcile(True, interval)
+                if ok and not self.context.systemd.timer_armed():
+                    # Active but eventless: it would never fire again.
+                    from clockify_launchers.domain.models import (
+                        ActivityEvent,
+                        EventSeverity,
+                        new_id,
+                    )
+
+                    log.warning("sync timer is active but has no armed elapse")
+                    self.context.db.record_event(
+                        ActivityEvent(
+                            id=new_id(),
+                            event_type="timer-unarmed",
+                            severity=EventSeverity.WARNING,
+                            summary="The sync timer is active but never fires",
+                            details="systemd reports no next elapse for the sync timer; "
+                            "background sync will not run until it is re-armed.",
+                        )
+                    )
 
         run_async(
             work,
