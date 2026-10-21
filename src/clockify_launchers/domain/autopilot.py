@@ -75,6 +75,9 @@ class ReconciliationPlan:
     additions: tuple[Candidate, ...] = ()
     removal_suggestions: tuple[Launcher, ...] = ()
     removals: tuple[Launcher, ...] = ()
+    # Eligible candidates the automatic-launcher cap left unadded (evidence
+    # for the "waiting for a free slot" UI; empty unless the cap bit).
+    blocked_additions: tuple[Candidate, ...] = ()
     skipped_reasons: tuple[str, ...] = ()
     safe_to_remove: bool = True
 
@@ -91,32 +94,34 @@ class DismissalRecord:
         return now < self.dismissed_at + timedelta(days=self.cooldown_days)
 
 
-def eligible_additions(
+def _auto_budget(launchers: list[Launcher], settings: PolicySettings) -> int:
+    """Slots left under the automatic-launcher cap for these launchers."""
+    auto_count = sum(
+        1
+        for lc in launchers
+        if lc.source is LauncherSource.AUTOMATIC and lc.status is not LauncherStatus.REMOVED
+    )
+    return max(0, settings.max_auto_launchers - auto_count)
+
+
+def _ranked_eligible(
     candidates: list[Candidate],
     launchers: list[Launcher],
     dismissals: list[DismissalRecord],
     settings: PolicySettings,
     now: datetime,
 ) -> list[Candidate]:
-    """Filter and rank candidates eligible for automatic addition."""
+    """Eligible, deduplicated candidates ranked by score (cap NOT applied)."""
     active_signatures = {
         signature_of(lc.target) for lc in launchers if lc.status is not LauncherStatus.REMOVED
     }
     active_dismissals = {d.signature for d in dismissals if d.active(now)}
-    auto_count = sum(
-        1
-        for lc in launchers
-        if lc.source is LauncherSource.AUTOMATIC and lc.status is not LauncherStatus.REMOVED
-    )
-    budget = max(0, settings.max_auto_launchers - auto_count)
 
     picked: list[Candidate] = []
     ranked = sorted(
         candidates, key=lambda c: (-c.score, -c.last_use.timestamp(), c.target.signature)
     )
     for cand in ranked:
-        if len(picked) >= budget:
-            break
         if not cand.eligible:
             continue
         sig = signature_of(cand.target)
@@ -128,6 +133,18 @@ def eligible_additions(
             continue
         picked.append(cand)
     return picked
+
+
+def eligible_additions(
+    candidates: list[Candidate],
+    launchers: list[Launcher],
+    dismissals: list[DismissalRecord],
+    settings: PolicySettings,
+    now: datetime,
+) -> list[Candidate]:
+    """Filter and rank candidates eligible for automatic addition."""
+    queue = _ranked_eligible(candidates, launchers, dismissals, settings, now)
+    return queue[: _auto_budget(launchers, settings)]
 
 
 def removable(launcher: Launcher, now: datetime, settings: PolicySettings) -> tuple[bool, str]:
@@ -163,12 +180,11 @@ def build_plan(
         return ReconciliationPlan(skipped_reasons=("manual mode: no automation",))
 
     skipped: list[str] = []
-    additions: tuple[Candidate, ...] = ()
-    if health.safe_to_add:
-        additions = tuple(eligible_additions(candidates, launchers, dismissals, settings, now))
-    else:
-        skipped.append("additions skipped: " + "; ".join(health.problems()))
 
+    # Removals are planned first: in Autopilot, a slot freed by a removal in
+    # this run must be usable by additions in the SAME run. (Planning
+    # additions first used to leave a full cap silently blocking every
+    # addition until the next, possibly-never-coming sync.)
     stale_unpinned = [
         lc
         for lc in launchers
@@ -181,23 +197,47 @@ def build_plan(
             and not is_snoozed(lc, now)
         )
     ]
-
+    removal_suggestions: tuple[Launcher, ...] = ()
+    removals: tuple[Launcher, ...] = ()
     if not health.safe_to_remove:
         skipped.append("removals skipped: " + "; ".join(health.problems()))
-        return ReconciliationPlan(
-            additions=additions, skipped_reasons=tuple(skipped), safe_to_remove=False
-        )
+    elif mode is ManagementMode.ASSISTED:
+        removal_suggestions = tuple(stale_unpinned)
+    else:
+        removals = tuple(lc for lc in stale_unpinned if removable(lc, now, settings)[0])
+
+    effective_launchers = [lc for lc in launchers if lc.id not in {r.id for r in removals}]
+    additions: tuple[Candidate, ...] = ()
+    blocked_additions: tuple[Candidate, ...] = ()
+    if health.safe_to_add:
+        queue = _ranked_eligible(candidates, effective_launchers, dismissals, settings, now)
+        budget = _auto_budget(effective_launchers, settings)
+        additions = tuple(queue[:budget])
+        blocked_additions = tuple(queue[budget:])
+        if blocked_additions:
+            skipped.append(
+                f"additions skipped: automatic launcher cap reached "
+                f"({settings.max_auto_launchers}); "
+                f"{len(blocked_additions)} candidate(s) waiting for a free slot"
+            )
+    else:
+        skipped.append("additions skipped: " + "; ".join(health.problems()))
 
     if mode is ManagementMode.ASSISTED:
         return ReconciliationPlan(
             additions=additions,
-            removal_suggestions=tuple(stale_unpinned),
+            removal_suggestions=removal_suggestions,
+            blocked_additions=blocked_additions,
             skipped_reasons=tuple(skipped),
+            safe_to_remove=health.safe_to_remove,
         )
 
-    removals = tuple(lc for lc in stale_unpinned if removable(lc, now, settings)[0])
     return ReconciliationPlan(
-        additions=additions, removals=removals, skipped_reasons=tuple(skipped)
+        additions=additions,
+        removals=removals,
+        blocked_additions=blocked_additions,
+        skipped_reasons=tuple(skipped),
+        safe_to_remove=health.safe_to_remove,
     )
 
 

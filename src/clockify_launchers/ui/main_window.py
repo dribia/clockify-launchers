@@ -10,7 +10,7 @@ from gi.repository import Adw, GLib, Gtk, Pango
 
 from clockify_launchers import constants
 from clockify_launchers.context import AppContext
-from clockify_launchers.domain.models import TimeEntry
+from clockify_launchers.domain.models import Candidate, TimeEntry
 from clockify_launchers.infrastructure.clockify_api import (
     AuthError,
     ClockifyClientProtocol,
@@ -58,6 +58,11 @@ class MainWindow(Adw.ApplicationWindow):
         self.context = context
         self.set_default_size(1000, 720)
         self.set_size_request(360, 400)
+        # Eligible candidates the automatic-launcher cap left unadded in the
+        # last sync; rendered on the Suggestions page until the next sync.
+        self.blocked_candidates: list[Candidate] = []
+        if context.demo and os.environ.get(constants.DEMO_STATE_ENV_VAR, "") == "suggestions-add":
+            self._seed_demo_blocked_candidates()
 
         self.toast_overlay = Adw.ToastOverlay()
         self.set_content(self.toast_overlay)
@@ -128,6 +133,38 @@ class MainWindow(Adw.ApplicationWindow):
         self.connect("map", lambda *_: self.refresh_timer_now())
 
     # -- construction helpers ------------------------------------------------
+
+    def _seed_demo_blocked_candidates(self) -> None:
+        """Deterministic cap-blocked rows for the suggestions-add demo state."""
+        from datetime import timedelta
+
+        from clockify_launchers.demo import fixtures
+        from clockify_launchers.domain.models import LauncherTarget
+
+        now = fixtures.DEMO_NOW
+        self.blocked_candidates = [
+            Candidate(
+                target=LauncherTarget(
+                    workspace_id=fixtures.WS_MAIN.id,
+                    project_id="prj-kaito",
+                    task_id="task-report",
+                ),
+                count=3,
+                last_use=now - timedelta(days=2),
+                score=2.7,
+                representative_entry_id="te-demo-blocked-1",
+                project_name="Kaito",
+                task_name="Quarterly report",
+            ),
+            Candidate(
+                target=LauncherTarget(workspace_id=fixtures.WS_MAIN.id, project_id="prj-research"),
+                count=2,
+                last_use=now - timedelta(days=5),
+                score=1.9,
+                representative_entry_id="te-demo-blocked-2",
+                project_name="Research",
+            ),
+        ]
 
     def _build_timer_bar(self) -> Gtk.Box:
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8, visible=False)
@@ -326,6 +363,7 @@ class MainWindow(Adw.ApplicationWindow):
             outcome = result.outcome
             if outcome == "success":
                 self.hide_banner()
+                self.blocked_candidates = list(result.blocked)
                 parts = ["Sync finished"]
                 if result.added:
                     parts.append(f"{len(result.added)} added")
@@ -333,6 +371,8 @@ class MainWindow(Adw.ApplicationWindow):
                     parts.append(f"{len(result.removed)} removed")
                 if result.suggestions_created:
                     parts.append(f"{result.suggestions_created} suggestions")
+                if result.blocked:
+                    parts.append(f"{len(result.blocked)} waiting for a free slot")
                 self.toast(", ".join(parts) + ".")
             elif outcome == "offline":
                 self.show_banner("Clockify is unreachable. Nothing was changed.")

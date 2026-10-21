@@ -285,14 +285,17 @@ class TimerIndicator:
                 OBJECT_PATH,
                 item_node.interfaces[0],
                 self._on_method_call,
-                self._on_get_property,
+                # Returning None for an unknown property makes PyGObject answer
+                # the D-Bus call with an error; newer stubs type the
+                # get-property callback as non-optional and reject that.
+                self._on_get_property,  # ty: ignore[invalid-argument-type]
                 None,
             )
             self._menu_registration_id = connection.register_object(
                 MENU_PATH,
                 menu_node.interfaces[0],
                 self._on_menu_method_call,
-                self._on_menu_get_property,
+                self._on_menu_get_property,  # ty: ignore[invalid-argument-type]
                 None,
             )
         except GLib.Error as exc:

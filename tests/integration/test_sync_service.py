@@ -157,3 +157,36 @@ def test_manual_mode_is_a_skip(env):
     assert result.outcome == "skipped"
     assert result.added == () and result.removed == ()
     assert env.db.list_launchers() == []
+
+
+def test_full_cap_blocks_additions_visibly(env):
+    """A full automatic-launcher cap must not silently hide candidates."""
+    settings = PolicySettings(max_auto_launchers=1)
+    env.launcher_service.create(
+        account_id=env.account.id,
+        target=LauncherTarget(workspace_id=fixtures.WS_MAIN.id, project_id="prj-ops"),
+        display_name="Ops",
+        source=LauncherSource.AUTOMATIC,
+        now=NOW,
+    )
+    sync = make_sync(env)
+    result = sync.run(ManagementMode.ASSISTED, settings, now=NOW)
+    assert result.outcome == "success"
+    assert result.added == ()
+    assert {c.project_name for c in result.blocked} >= {"Tank", "Research"}
+    assert "cap reached" in result.detail and "free slot" in result.detail
+
+
+def test_autopilot_reuses_slot_freed_by_removal_in_same_run(env):
+    """The run that removes a stale launcher can add within the freed slot."""
+    settings = PolicySettings(max_auto_launchers=1)
+    stale = stale_auto_launcher(env)
+    sync = make_sync(env)
+    result = sync.run(ManagementMode.AUTOPILOT, settings, now=NOW)
+    assert result.outcome == "success"
+    assert stale.id in {lc.id for lc in result.removed}
+    added_projects = {lc.target.project_id for lc in result.added}
+    assert "prj-tank" in added_projects
+    # Only one slot was freed: the runner-up candidate waits, visibly.
+    assert [c.project_name for c in result.blocked] == ["Research"]
+    assert "cap reached" in result.detail

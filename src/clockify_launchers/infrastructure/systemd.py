@@ -40,7 +40,19 @@ class SystemdManager:
     def write_interval_dropin(self, minutes: int) -> Path:
         dropin_dir = self._user_dir / f"{constants.SYSTEMD_TIMER}.d"
         path = dropin_dir / "override.conf"
-        content = f"[Timer]\nOnUnitActiveSec=\nOnUnitActiveSec={minutes}min\n"
+        # systemd parses every On*Sec directive into ONE shared spec list, so
+        # the empty ``OnUnitActiveSec=`` reset below clears not just the
+        # shipped interval but also the shipped OnStartupSec/OnActiveSec
+        # re-arm anchors, leaving the timer eventless (ADR 0019, observed on
+        # systemd 255). The drop-in therefore re-declares the anchors along
+        # with the custom interval.
+        content = (
+            "[Timer]\n"
+            "OnUnitActiveSec=\n"
+            f"OnStartupSec={constants.TIMER_ON_STARTUP_MINUTES}min\n"
+            f"OnActiveSec={minutes}min\n"
+            f"OnUnitActiveSec={minutes}min\n"
+        )
         atomic_write_text(path, content, mode=0o644)
         return path
 
@@ -52,7 +64,9 @@ class SystemdManager:
     def reconcile(self, enabled: bool, minutes: int) -> bool:
         """Converge the timer with the mode and interval, re-arming it.
 
-        Called at application startup (and after mode changes): reloads the
+        Called at application startup (and after mode changes): rewrites the
+        interval drop-in (re-declaring the re-arm anchors, healing installs
+        whose old drop-in left the timer eventless - ADR 0019), reloads the
         shipped unit definitions, then enables + restarts the timer so the
         ``OnActiveSec`` anchor arms a sync even when the
         ``OnUnitActiveSec`` chain is broken (service never activated in
@@ -74,3 +88,32 @@ class SystemdManager:
     def timer_active(self) -> bool:
         result = self._run(["systemctl", "--user", "is-active", constants.SYSTEMD_TIMER])
         return result.returncode == 0 and result.stdout.strip() == "active"
+
+    def timer_armed(self) -> bool:
+        """Whether the timer has at least one armed elapse (not merely active).
+
+        An ``active (elapsed)`` timer whose next elapse is ``infinity`` never
+        fires - the exact state the pre-ADR-0019 interval drop-in left behind
+        after every reboot. ``is-active`` alone cannot detect it.
+        """
+        result = self._run(
+            [
+                "systemctl",
+                "--user",
+                "show",
+                constants.SYSTEMD_TIMER,
+                "-p",
+                "NextElapseUSecRealtime",
+                "-p",
+                "NextElapseUSecMonotonic",
+            ]
+        )
+        if result.returncode != 0:
+            return False
+        for line in result.stdout.splitlines():
+            if "=" not in line:
+                continue
+            value = line.split("=", 1)[1].strip()
+            if value and value not in ("0", "infinity"):
+                return True
+        return False

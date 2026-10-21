@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from gi.repository import Adw, GLib, Gtk
 
 from clockify_launchers.domain.models import (
+    Candidate,
     Suggestion,
     SuggestionState,
     SuggestionType,
@@ -42,8 +43,9 @@ class SuggestionsPage(Gtk.ScrolledWindow):
         adds = [s for s in suggestions if s.type is SuggestionType.ADD]
         removes = [s for s in suggestions if s.type is SuggestionType.REMOVE]
         tombstones = self.context.db.list_tombstones()
+        blocked = getattr(self.window, "blocked_candidates", [])
 
-        if not adds and not removes and not tombstones:
+        if not adds and not removes and not tombstones and not blocked:
             status = Adw.StatusPage(
                 title="Nothing to review",
                 description="Suggestions from Clockify activity will appear here.",
@@ -62,6 +64,11 @@ class SuggestionsPage(Gtk.ScrolledWindow):
             group = Adw.PreferencesGroup(title="Suggested removals")
             for suggestion in removes:
                 group.add(self._remove_row(suggestion))
+            self.box.append(group)
+        if blocked:
+            group = Adw.PreferencesGroup(title="Waiting for a free slot")
+            for candidate in blocked:
+                group.add(self._blocked_row(candidate))
             self.box.append(group)
         if tombstones:
             group = Adw.PreferencesGroup(title="Recently removed")
@@ -134,6 +141,22 @@ class SuggestionsPage(Gtk.ScrolledWindow):
         restore = Gtk.Button(label="Restore", valign=Gtk.Align.CENTER)
         restore.connect("clicked", lambda *_a: self._restore(tomb.launcher_id))
         row.add_suffix(restore)
+        return row
+
+    def _blocked_row(self, candidate: Candidate) -> Adw.ActionRow:
+        title = candidate.project_name
+        if candidate.task_name:
+            title = f"{title} - {candidate.task_name}"
+        if candidate.tag_names:
+            title += "  [" + ", ".join(candidate.tag_names) + "]"
+        cap = self.context.config.policy.max_auto_launchers
+        row = Adw.ActionRow(
+            title=GLib.markup_escape_text(title),
+            subtitle=GLib.markup_escape_text(
+                f"Eligible for an automatic launcher, but the cap of {cap} is full. "
+                "Raise the cap in Preferences or free a slot to add it."
+            ),
+        )
         return row
 
     # -- actions -------------------------------------------------------------

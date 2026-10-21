@@ -94,3 +94,14 @@ up to five times.
   SwitchRow inside the Background group, under the login switch. Rows align,
   subtitle example renders on one line, no clipping; narrow capture also
   clean.
+
+## 2026-10-20 - Suggestions: "Waiting for a free slot" group
+
+- `suggestions-add.png` (1000x720) recaptured after adding the cap-blocked
+  candidates group to the Suggestions page (seeded in the demo state with
+  "Kaito - Quarterly report" and "Research"). The capture harness validated
+  the image (size, color count, non-blank) and the 8 AT-SPI flows pass.
+  NOTE: the coding agent could not visually inspect the PNG this round
+  (no image input available); the owner should glance at the new group's
+  spacing/wording before release - rows are ActionRows like the adjacent
+  groups, so the main risk is subtitle wrap length.

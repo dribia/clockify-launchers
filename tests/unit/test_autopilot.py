@@ -200,6 +200,53 @@ class TestAdditions:
         assert eligible_additions([cand], [], [], SETTINGS, NOW) == []
 
 
+class TestCapBudget:
+    def test_removal_frees_slot_in_same_run(self) -> None:
+        """A cap-filling stale launcher removed by this run must not block it."""
+        settings = PolicySettings(max_auto_launchers=1)
+        stale = _launcher()  # automatic, unpinned, stale
+        plan = build_plan(
+            ManagementMode.AUTOPILOT, [_candidate()], [stale], [], HEALTHY, settings, NOW
+        )
+        assert plan.removals == (stale,)
+        assert len(plan.additions) == 1
+
+    def test_assisted_removal_suggestion_frees_no_slot(self) -> None:
+        """Assisted never removes, so suggestions must not inflate the budget."""
+        settings = PolicySettings(max_auto_launchers=1)
+        stale = _launcher()
+        plan = build_plan(
+            ManagementMode.ASSISTED, [_candidate()], [stale], [], HEALTHY, settings, NOW
+        )
+        assert plan.removal_suggestions == (stale,)
+        assert plan.additions == ()
+        assert plan.blocked_additions == (_candidate(),)
+
+    def test_full_cap_records_blocked_and_reason(self) -> None:
+        settings = PolicySettings(max_auto_launchers=1)
+        fresh = _launcher("a1", last_clockify_use_at=NOW - timedelta(days=1))
+        cands = [_candidate("p0", score=3.0), _candidate("p1", score=2.0)]
+        plan = build_plan(ManagementMode.AUTOPILOT, cands, [fresh], [], HEALTHY, settings, NOW)
+        assert plan.removals == ()
+        assert plan.additions == ()
+        assert plan.blocked_additions == (cands[0], cands[1])
+        assert any(
+            "automatic launcher cap reached" in r and "waiting for a free slot" in r
+            for r in plan.skipped_reasons
+        )
+
+    def test_unsafe_run_blocks_additions_without_cap_reason(self) -> None:
+        """Health skips are not cap skips: nothing may be reported blocked."""
+        bad = RunHealth(complete_pagination=False)
+        settings = PolicySettings(max_auto_launchers=1)
+        fresh = _launcher("a1", last_clockify_use_at=NOW - timedelta(days=1))
+        plan = build_plan(ManagementMode.AUTOPILOT, [_candidate()], [fresh], [], bad, settings, NOW)
+        assert plan.additions == ()
+        assert plan.blocked_additions == ()
+        assert not any("cap reached" in r for r in plan.skipped_reasons)
+        assert plan.safe_to_remove is False
+
+
 class TestRemovable:
     def test_ok(self) -> None:
         ok, reason = removable(_launcher(), NOW, SETTINGS)

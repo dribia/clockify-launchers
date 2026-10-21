@@ -9,7 +9,7 @@ import sys
 
 from clockify_launchers import constants
 from clockify_launchers.context import AppContext, build_context
-from clockify_launchers.domain.models import LauncherStatus
+from clockify_launchers.domain.models import LauncherStatus, ManagementMode
 from clockify_launchers.infrastructure.clockify_api import (
     AuthError,
     ClockifyClientProtocol,
@@ -202,6 +202,12 @@ def cmd_sync(context: AppContext, background: bool) -> int:
             print(f"  Removed: {', '.join(lc.display_name for lc in result.removed)}")
         if result.suggestions_created:
             print(f"  New removal suggestions: {result.suggestions_created}")
+        if result.blocked:
+            waiting = ", ".join(
+                f"{c.project_name} - {c.task_name}" if c.task_name else c.project_name
+                for c in result.blocked
+            )
+            print(f"  Waiting for a free automatic slot: {waiting}")
         if result.detail:
             print(f"  Notes: {result.detail}")
     if result.added and background:
@@ -255,7 +261,23 @@ def cmd_doctor(context: AppContext, network: bool) -> int:
     )
     last = context.db.last_sync_run()
     checks.append(("Last sync", last is not None, f"{last['outcome']}" if last else "never ran"))
-    checks.append(("systemd timer active", context.systemd.timer_active(), ""))
+    if config.management_mode is ManagementMode.MANUAL:
+        checks.append(
+            (
+                "systemd timer disabled",
+                not context.systemd.timer_active(),
+                "manual mode expects no sync timer",
+            )
+        )
+    else:
+        armed = context.systemd.timer_active() and context.systemd.timer_armed()
+        checks.append(
+            (
+                "systemd timer armed",
+                armed,
+                "" if armed else "active but never fires; restart the application",
+            )
+        )
 
     if network and configured:
         try:
@@ -266,13 +288,16 @@ def cmd_doctor(context: AppContext, network: bool) -> int:
             checks.append(("Clockify API", False, str(exc)))
 
     failed = False
+    # Soft checks never affect the exit code: manual-mode timer state is
+    # informational, and a missing sync/account is a setup matter.
+    soft_checks = ("Last sync", "Account configured", "systemd timer disabled")
     for name, ok, detail in checks:
         mark = "ok " if ok else "FAIL"
         line = f"[{mark}] {name}"
         if detail:
             line += f" - {detail}"
         print(line)
-        if not ok and name not in ("systemd timer active", "Last sync", "Account configured"):
+        if not ok and name not in soft_checks:
             failed = True
     return constants.EXIT_CONFIG_ERROR if failed else constants.EXIT_OK
 
