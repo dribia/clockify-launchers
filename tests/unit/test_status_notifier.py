@@ -33,29 +33,197 @@ class TestFormatIndicatorLabel:
         assert format_indicator_label("A" * 40) == "\u25b6 " + "A" * 40
 
     def test_day_total_appended_to_idle_label(self) -> None:
-        assert format_indicator_label(None, day_minutes=331) == f"{IDLE_LABEL} (5:31)"
-        assert format_indicator_label(None, day_minutes=0) == f"{IDLE_LABEL} (0:00)"
+        assert format_indicator_label(None, (331,)) == f"{IDLE_LABEL} (5:31)"
+        assert format_indicator_label(None, (0,)) == f"{IDLE_LABEL} (0:00)"
 
-    def test_tracking_with_day_total_and_entry_elapsed(self) -> None:
+    def test_tracking_with_two_times(self) -> None:
+        assert format_indicator_label("Agenda", (32, 331)) == "\u25b6 Agenda (0:32 / 5:31)"
+
+    def test_single_time(self) -> None:
+        assert format_indicator_label("Tank", (61,)) == "\u25b6 Tank (1:01)"
+
+    def test_many_times_keep_configured_order(self) -> None:
         assert (
-            format_indicator_label("Agenda", day_minutes=331, entry_minutes=32)
-            == "\u25b6 Agenda (0:32 / 5:31)"
+            format_indicator_label("Tank", (5, 65, 125, 185, 245))
+            == "\u25b6 Tank (0:05 / 1:05 / 2:05 / 3:05 / 4:05)"
         )
 
-    def test_entry_elapsed_without_day_total(self) -> None:
-        assert format_indicator_label("Tank", entry_minutes=61) == "\u25b6 Tank (1:01)"
-
-    def test_day_total_without_entry_elapsed_while_tracking(self) -> None:
-        assert format_indicator_label("Tank", day_minutes=331) == "\u25b6 Tank (5:31)"
+    def test_none_times_render_as_placeholder(self) -> None:
+        """Unavailable times keep their position so the pattern is stable."""
+        assert format_indicator_label(None, (None, 331)) == f"{IDLE_LABEL} (- / 5:31)"
+        assert (
+            format_indicator_label(None, (None, None, None, 331, 2404))
+            == f"{IDLE_LABEL} (- / - / - / 5:31 / 40:04)"
+        )
 
     def test_negative_minutes_clamped(self) -> None:
         from clockify_launchers.infrastructure.status_notifier import format_duration_hm
 
         assert format_duration_hm(-5) == "0:00"
 
-    def test_times_omitted_when_none(self) -> None:
+    def test_times_omitted_when_empty(self) -> None:
         assert format_indicator_label("Tank") == "\u25b6 Tank"
         assert format_indicator_label(None) == IDLE_LABEL
+
+
+class TestComputeIndicatorTimes:
+    """The five configurable indicator times, with a fake clock."""
+
+    from datetime import UTC, datetime, timedelta
+
+    NOW = datetime(2026, 7, 1, 12, 0, tzinfo=UTC)  # a Wednesday
+    DAY_START = datetime(2026, 7, 1, 0, 0, tzinfo=UTC)
+    WEEK_START = datetime(2026, 6, 29, 0, 0, tzinfo=UTC)  # Monday
+
+    @staticmethod
+    def _entry(entry_id: str, project: str | None, start, end):
+        from clockify_launchers.domain.models import TimeEntry
+
+        return TimeEntry(
+            id=entry_id,
+            workspace_id="ws",
+            project_id=project,
+            task_id=None,
+            tag_ids=(),
+            description="",
+            start=start,
+            end=end,
+        )
+
+    def _fixture(self):
+        from datetime import timedelta
+
+        running = self._entry("run", "p1", self.NOW - timedelta(minutes=30), None)
+        entries = [
+            # Today, same project: 60 min.
+            self._entry(
+                "a", "p1", self.DAY_START + timedelta(hours=9), self.DAY_START + timedelta(hours=10)
+            ),
+            # Today, other project: 30 min.
+            self._entry(
+                "b",
+                "p2",
+                self.DAY_START + timedelta(hours=10),
+                self.DAY_START + timedelta(hours=10, minutes=30),
+            ),
+            # Earlier this week, same project: 120 min.
+            self._entry(
+                "c",
+                "p1",
+                self.WEEK_START + timedelta(hours=9),
+                self.WEEK_START + timedelta(hours=11),
+            ),
+            # Before this week: never counted.
+            self._entry(
+                "d",
+                "p1",
+                self.WEEK_START - timedelta(hours=5),
+                self.WEEK_START - timedelta(hours=3),
+            ),
+            # The running entry as returned inside the list (end=None): skipped.
+            running,
+        ]
+        return entries, running
+
+    def test_all_enabled_order_and_values(self) -> None:
+        from clockify_launchers.infrastructure.config_store import IndicatorPrefs
+        from clockify_launchers.infrastructure.status_notifier import compute_indicator_times
+
+        prefs = IndicatorPrefs(
+            entry_time=True,
+            project_day_total=True,
+            project_week_total=True,
+            day_total=True,
+            week_total=True,
+        )
+        entries, running = self._fixture()
+        times = compute_indicator_times(
+            prefs, entries, running, self.NOW, self.DAY_START, self.WEEK_START
+        )
+        # entry 30; project day 60+30; project week 60+120+30;
+        # day 60+30+30; week 60+30+120+30.
+        assert times == (30, 90, 210, 120, 240)
+
+    def test_idle_placeholds_entry_and_project_times(self) -> None:
+        from clockify_launchers.infrastructure.config_store import IndicatorPrefs
+        from clockify_launchers.infrastructure.status_notifier import compute_indicator_times
+
+        prefs = IndicatorPrefs(
+            entry_time=True,
+            project_day_total=True,
+            project_week_total=True,
+            day_total=True,
+            week_total=True,
+        )
+        entries, _running = self._fixture()
+        entries = [e for e in entries if e.end is not None]
+        times = compute_indicator_times(
+            prefs, entries, None, self.NOW, self.DAY_START, self.WEEK_START
+        )
+        assert times == (None, None, None, 90, 210)  # placeholders keep positions
+
+    def test_all_disabled_yields_no_times(self) -> None:
+        from clockify_launchers.infrastructure.config_store import IndicatorPrefs
+        from clockify_launchers.infrastructure.status_notifier import compute_indicator_times
+
+        prefs = IndicatorPrefs(
+            entry_time=False,
+            project_day_total=False,
+            project_week_total=False,
+            day_total=False,
+            week_total=False,
+        )
+        entries, running = self._fixture()
+        times = compute_indicator_times(
+            prefs, entries, running, self.NOW, self.DAY_START, self.WEEK_START
+        )
+        assert times == ()
+        assert not prefs.needs_entries
+
+    def test_defaults_match_previous_behavior(self) -> None:
+        """Default prefs: entry time + daily total (the pre-feature label)."""
+        from clockify_launchers.infrastructure.config_store import IndicatorPrefs
+        from clockify_launchers.infrastructure.status_notifier import (
+            compute_indicator_times,
+            format_indicator_label,
+        )
+
+        entries, running = self._fixture()
+        times = compute_indicator_times(
+            IndicatorPrefs(), entries, running, self.NOW, self.DAY_START, self.WEEK_START
+        )
+        assert format_indicator_label("Agenda", times) == "\u25b6 Agenda (0:30 / 2:00)"
+
+    def test_running_entry_without_project_placeholds_project_totals(self) -> None:
+        from datetime import timedelta
+
+        from clockify_launchers.infrastructure.config_store import IndicatorPrefs
+        from clockify_launchers.infrastructure.status_notifier import compute_indicator_times
+
+        running = self._entry("run", None, self.NOW - timedelta(minutes=10), None)
+        prefs = IndicatorPrefs(
+            entry_time=True, project_day_total=True, project_week_total=True, day_total=False
+        )
+        times = compute_indicator_times(
+            prefs, [], running, self.NOW, self.DAY_START, self.WEEK_START
+        )
+        assert times == (10, None, None)
+
+    def test_entries_clipped_to_window_start(self) -> None:
+        from datetime import timedelta
+
+        from clockify_launchers.infrastructure.config_store import IndicatorPrefs
+        from clockify_launchers.infrastructure.status_notifier import compute_indicator_times
+
+        # Overnight entry: only the part after local midnight counts today.
+        overnight = self._entry(
+            "n", "p1", self.DAY_START - timedelta(hours=1), self.DAY_START + timedelta(minutes=45)
+        )
+        prefs = IndicatorPrefs(entry_time=False, day_total=True)
+        times = compute_indicator_times(
+            prefs, [overnight], None, self.NOW, self.DAY_START, self.WEEK_START
+        )
+        assert times == (45,)
 
 
 class TestTimerIndicator:

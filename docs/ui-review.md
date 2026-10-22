@@ -105,3 +105,14 @@ up to five times.
   (no image input available); the owner should glance at the new group's
   spacing/wording before release - rows are ActionRows like the adjacent
   groups, so the main risk is subtitle wrap length.
+
+## 2026-10-21 - Preferences: per-time indicator toggles
+
+- `preferences.png` (1000x720) and `preferences-narrow.png` (800x700)
+  recaptured after replacing the "Show times in the top-bar indicator"
+  SwitchRow with an ExpanderRow ("Times in the top-bar indicator")
+  holding five SwitchRows (current entry, project today/this week,
+  daily/weekly totals). Harness validated both captures (size, colors,
+  non-blank); 8 AT-SPI flows pass. NOTE: agent could not visually
+  inspect the PNGs this session (no image input); owner should check the
+  expander row's closed-state subtitle wrap at the narrow size.

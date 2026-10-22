@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from gi.repository import Adw, GLib, Gtk
 
 from clockify_launchers.domain.models import ManagementMode
+from clockify_launchers.infrastructure.config_store import IndicatorPrefs
 
 if TYPE_CHECKING:
     from clockify_launchers.ui.main_window import MainWindow
@@ -67,12 +68,48 @@ class PreferencesPage(Adw.PreferencesPage):
         )
         self.background_row.connect("notify::active", self._on_background_changed)
         background.add(self.background_row)
-        self.indicator_times_row = Adw.SwitchRow(
-            title="Show times in the top-bar indicator",
-            subtitle='The running entry and the total tracked today, e.g. "Organic (0:05 / 5:32)"',
-            active=config.indicator_show_times,
+        self.indicator_expander = Adw.ExpanderRow(
+            title="Times in the top-bar indicator",
+            subtitle=(
+                'Enabled times are joined with "/" in this order, e.g. "Organic (0:05 / 5:32)". '
+                "Weeks start on Monday."
+            ),
         )
-        background.add(self.indicator_times_row)
+        self.indicator_entry_row = Adw.SwitchRow(
+            title="Current entry time",
+            subtitle="Elapsed time of the running entry",
+            active=config.indicator.entry_time,
+        )
+        self.indicator_project_day_row = Adw.SwitchRow(
+            title="Project total today",
+            subtitle="Time tracked today on the running entry's project",
+            active=config.indicator.project_day_total,
+        )
+        self.indicator_project_week_row = Adw.SwitchRow(
+            title="Project total this week",
+            subtitle="Time tracked this week on the running entry's project",
+            active=config.indicator.project_week_total,
+        )
+        self.indicator_day_row = Adw.SwitchRow(
+            title="Daily total",
+            subtitle="Time tracked today across all projects",
+            active=config.indicator.day_total,
+        )
+        self.indicator_week_row = Adw.SwitchRow(
+            title="Weekly total",
+            subtitle="Time tracked this week across all projects",
+            active=config.indicator.week_total,
+        )
+        self.indicator_rows = (
+            self.indicator_entry_row,
+            self.indicator_project_day_row,
+            self.indicator_project_week_row,
+            self.indicator_day_row,
+            self.indicator_week_row,
+        )
+        for row in self.indicator_rows:
+            self.indicator_expander.add_row(row)
+        background.add(self.indicator_expander)
         self.add(background)
 
         # Automation settings
@@ -121,7 +158,7 @@ class PreferencesPage(Adw.PreferencesPage):
             self.notif_success,
             self.notif_failure,
             self.notif_additions,
-            self.indicator_times_row,
+            *self.indicator_rows,
         ):
             switch.connect("notify::active", self._on_setting_changed)
 
@@ -228,7 +265,13 @@ class PreferencesPage(Adw.PreferencesPage):
         config.notifications.timer_success = self.notif_success.get_active()
         config.notifications.timer_failure = self.notif_failure.get_active()
         config.notifications.background_additions = self.notif_additions.get_active()
-        config.indicator_show_times = self.indicator_times_row.get_active()
+        config.indicator = IndicatorPrefs(
+            entry_time=self.indicator_entry_row.get_active(),
+            project_day_total=self.indicator_project_day_row.get_active(),
+            project_week_total=self.indicator_project_week_row.get_active(),
+            day_total=self.indicator_day_row.get_active(),
+            week_total=self.indicator_week_row.get_active(),
+        )
         self.context.save_config(config)
         if config.management_mode is not ManagementMode.MANUAL and not self.context.demo:
             self.context.systemd.apply_interval(config.policy.sync_interval_minutes)

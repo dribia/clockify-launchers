@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Customizable times in the top-bar indicator: five individual toggles
+  (current entry time, project total today, project total this week, daily
+  total, weekly total) replace the single "Show times" switch. Enabled
+  times are joined with "/" in that fixed order, without labels, e.g.
+  `Organic (0:05 / 5:32)`; while idle, times that need a running entry
+  (entry time and the project totals) render as "-" so the configured
+  pattern keeps its positions, e.g. `Not tracking (- / 5:32)`. All-off
+  hides times entirely (the old toggle off). Weeks start on Monday,
+  local time. Existing configs migrate:
+  the old switch off becomes all-off, on becomes the previous
+  entry-time + daily-total pair (also the default).
+
 ### Fixed
 
 - Automatic additions are no longer silently blocked by a full

@@ -25,7 +25,11 @@ from gi.repository import Gio, GLib
 from clockify_launchers import constants
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
+    from datetime import datetime
+
+    from clockify_launchers.domain.models import TimeEntry
+    from clockify_launchers.infrastructure.config_store import IndicatorPrefs
 
 log = logging.getLogger(__name__)
 
@@ -150,19 +154,81 @@ def format_duration_hm(minutes: int) -> str:
     return f"{hours:d}:{mins:02d}"
 
 
-def format_indicator_label(
-    project_name: str | None,
-    day_minutes: int | None = None,
-    entry_minutes: int | None = None,
-) -> str:
+def _window_minutes(
+    entries: Sequence[TimeEntry],
+    running: TimeEntry | None,
+    start: datetime,
+    now: datetime,
+    project_id: str | None = None,
+) -> int:
+    """Minutes tracked since ``start``: completed entries plus the running one.
+
+    Entries are clipped to the window start; running entries inside
+    ``entries`` carry ``end=None`` and are skipped (the live ``running``
+    argument is counted instead, so nothing is double-counted). With
+    ``project_id`` only that project's entries count.
+    """
+    total_seconds = 0.0
+    for item in entries:
+        if item.end is None or item.end <= start:
+            continue
+        if project_id is not None and item.project_id != project_id:
+            continue
+        total_seconds += (item.end - max(item.start, start)).total_seconds()
+    if running is not None and (project_id is None or running.project_id == project_id):
+        total_seconds += max(0.0, (now - max(running.start, start)).total_seconds())
+    return int(total_seconds // 60)
+
+
+def compute_indicator_times(
+    prefs: IndicatorPrefs,
+    entries: Sequence[TimeEntry],
+    running: TimeEntry | None,
+    now: datetime,
+    day_start: datetime,
+    week_start: datetime,
+) -> tuple[int | None, ...]:
+    """The enabled indicator times, in minutes, in their fixed display order.
+
+    Order: current entry, project today, project this week, all projects
+    today, all projects this week. Times that need a running entry (the
+    entry time and both project totals) are ``None`` while idle - rendered
+    as a placeholder so every enabled time keeps its position and the
+    label's pattern stays stable.
+    """
+    times: list[int | None] = []
+    if prefs.entry_time:
+        times.append(
+            int(max(0.0, (now - running.start).total_seconds()) // 60)
+            if running is not None
+            else None
+        )
+    project_id = running.project_id if running is not None else None
+    if prefs.project_day_total:
+        times.append(
+            _window_minutes(entries, running, day_start, now, project_id) if project_id else None
+        )
+    if prefs.project_week_total:
+        times.append(
+            _window_minutes(entries, running, week_start, now, project_id) if project_id else None
+        )
+    if prefs.day_total:
+        times.append(_window_minutes(entries, running, day_start, now))
+    if prefs.week_total:
+        times.append(_window_minutes(entries, running, week_start, now))
+    return tuple(times)
+
+
+def format_indicator_label(project_name: str | None, times: Sequence[int | None] = ()) -> str:
     """Compute the top-bar label for the current timer state.
 
-    ``None`` project means no timer is running. Times render inside one
-    trailing parenthesis: while tracking, the running entry's elapsed time
-    and the total tracked today, e.g. ``\u25b6 Agenda (0:32 / 5:31)``;
-    when idle, just the day total, e.g. ``Not tracking (5:31)``. Names are
-    flattened to a single line and truncated so the top bar is never
-    flooded.
+    ``None`` project means no timer is running. The pre-computed ``times``
+    (see :func:`compute_indicator_times`) render inside one trailing
+    parenthesis joined by " / ", deliberately unlabeled - users learn their
+    own configured order, e.g. ``\u25b6 Agenda (0:32 / 5:31)``. A ``None``
+    time renders as "-" so idle labels keep the configured pattern, e.g.
+    ``Not tracking (- / 5:31)``. Names are flattened to a single line and
+    truncated so the top bar is never flooded.
     """
     name = " ".join(project_name.split()) if project_name else ""
     if name:
@@ -170,16 +236,11 @@ def format_indicator_label(
         if len(name) > max_len:
             name = name[: max_len - 1].rstrip() + "\u2026"
         label = f"\u25b6 {name}"
-        if entry_minutes is not None and day_minutes is not None:
-            label += f" ({format_duration_hm(entry_minutes)} / {format_duration_hm(day_minutes)})"
-        elif entry_minutes is not None:
-            label += f" ({format_duration_hm(entry_minutes)})"
-        elif day_minutes is not None:
-            label += f" ({format_duration_hm(day_minutes)})"
-        return label
-    label = IDLE_LABEL
-    if day_minutes is not None:
-        label += f" ({format_duration_hm(day_minutes)})"
+    else:
+        label = IDLE_LABEL
+    if times:
+        rendered = (format_duration_hm(m) if m is not None else "-" for m in times)
+        label += " (" + " / ".join(rendered) + ")"
     return label
 
 
@@ -238,14 +299,9 @@ class TimerIndicator:
         """
         return self._registered
 
-    def set_tracking(
-        self,
-        project_name: str | None,
-        day_minutes: int | None = None,
-        entry_minutes: int | None = None,
-    ) -> None:
+    def set_tracking(self, project_name: str | None, times: Sequence[int | None] = ()) -> None:
         """Update the displayed label; ``None`` project means nothing is tracked."""
-        new_label = format_indicator_label(project_name, day_minutes, entry_minutes)
+        new_label = format_indicator_label(project_name, times)
         tracking = project_name is not None and bool(" ".join(project_name.split()))
         if new_label == self._label and tracking == self._tracking:
             return

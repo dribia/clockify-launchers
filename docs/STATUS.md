@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-10-20
+Updated: 2026-10-21
 
 ## Completed
 
@@ -48,6 +48,10 @@ Updated: 2026-10-20
   left the timer eventless across reboots), startup reconcile heals legacy
   drop-ins, an unarmed-but-active timer is recorded as a `timer-unarmed`
   activity event, and `doctor` fails on it in Assisted/Autopilot modes.
+- **Customizable indicator times**: five per-time toggles (current entry,
+  project today/this week, daily/weekly totals) joined with "/" in fixed
+  order in the top-bar label; legacy single-toggle configs migrate
+  (off = all off, on = entry + daily, the default).
 
 `make verify` passes from a clean checkout: lint, typecheck (ty, 0 errors),
 222 unit/contract/integration tests, data validation, UI capture, 8 AT-SPI

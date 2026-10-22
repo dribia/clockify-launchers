@@ -43,6 +43,33 @@ class NotificationPrefs:
 
 
 @dataclass(slots=True)
+class IndicatorPrefs:
+    """Which times the top-bar indicator shows.
+
+    Enabled times are joined with " / " in field order (no labels), e.g.
+    ``Organic (0:05 / 5:32)``. All-off hides times entirely (the old
+    ``indicator_show_times = false``). Weeks start on Monday, local time.
+    """
+
+    entry_time: bool = True
+    project_day_total: bool = False
+    project_week_total: bool = False
+    day_total: bool = True
+    week_total: bool = False
+
+    @property
+    def needs_entries(self) -> bool:
+        """Whether any enabled time requires fetching recent time entries."""
+        return (
+            self.project_day_total or self.project_week_total or self.day_total or self.week_total
+        )
+
+    @property
+    def needs_week(self) -> bool:
+        return self.project_week_total or self.week_total
+
+
+@dataclass(slots=True)
 class AppConfig:
     schema_version: int = SCHEMA_VERSION
     active_account_id: str | None = None
@@ -55,7 +82,7 @@ class AppConfig:
     notifications: NotificationPrefs = field(default_factory=NotificationPrefs)
     onboarding_complete: bool = False
     start_in_background: bool = True
-    indicator_show_times: bool = True
+    indicator: IndicatorPrefs = field(default_factory=IndicatorPrefs)
     last_app_version: str = constants.VERSION
 
     def to_json(self) -> str:
@@ -103,7 +130,24 @@ class AppConfig:
             cfg.notifications = NotificationPrefs(**valid_n)
         cfg.onboarding_complete = bool(data.get("onboarding_complete", False))
         cfg.start_in_background = bool(data.get("start_in_background", True))
-        cfg.indicator_show_times = bool(data.get("indicator_show_times", True))
+        indicator_data = data.get("indicator")
+        if isinstance(indicator_data, dict):
+            indicator_map = cast("dict[str, object]", indicator_data)
+            valid_i = {
+                f: bool(indicator_map[f])
+                for f in IndicatorPrefs.__dataclass_fields__
+                if f in indicator_map
+            }
+            cfg.indicator = IndicatorPrefs(**valid_i)
+        elif data.get("indicator_show_times") is False:
+            # Legacy single toggle, off: keep times hidden entirely.
+            cfg.indicator = IndicatorPrefs(
+                entry_time=False,
+                project_day_total=False,
+                project_week_total=False,
+                day_total=False,
+                week_total=False,
+            )
         cfg.last_app_version = str(data.get("last_app_version", constants.VERSION))
         return cfg
 
