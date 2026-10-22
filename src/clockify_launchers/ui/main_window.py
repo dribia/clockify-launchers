@@ -435,7 +435,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         from clockify_launchers.infrastructure.status_notifier import compute_indicator_times
 
-        def work() -> tuple[TimeEntry | None, tuple[int, ...]]:
+        def work() -> tuple[TimeEntry | None, tuple[int | None, ...]]:
             client = self._get_client()
             entry = client.get_in_progress_entry(workspace_id, user_id)
             now = datetime.now(tz=UTC)
@@ -451,7 +451,7 @@ class MainWindow(Adw.ApplicationWindow):
             times = compute_indicator_times(prefs, entries, entry, now, day_start, week_start)
             return entry, times
 
-        def done(result: tuple[TimeEntry | None, tuple[int, ...]]) -> None:
+        def done(result: tuple[TimeEntry | None, tuple[int | None, ...]]) -> None:
             entry, times = result
             if entry is None:
                 self.timer_bar.set_visible(False)

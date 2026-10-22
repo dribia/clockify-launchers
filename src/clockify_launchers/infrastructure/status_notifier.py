@@ -187,22 +187,31 @@ def compute_indicator_times(
     now: datetime,
     day_start: datetime,
     week_start: datetime,
-) -> tuple[int, ...]:
+) -> tuple[int | None, ...]:
     """The enabled indicator times, in minutes, in their fixed display order.
 
     Order: current entry, project today, project this week, all projects
     today, all projects this week. Times that need a running entry (the
-    entry time and both project totals) are omitted while idle, so the
-    label never shows a misleading number.
+    entry time and both project totals) are ``None`` while idle - rendered
+    as a placeholder so every enabled time keeps its position and the
+    label's pattern stays stable.
     """
-    times: list[int] = []
-    if prefs.entry_time and running is not None:
-        times.append(int(max(0.0, (now - running.start).total_seconds()) // 60))
+    times: list[int | None] = []
+    if prefs.entry_time:
+        times.append(
+            int(max(0.0, (now - running.start).total_seconds()) // 60)
+            if running is not None
+            else None
+        )
     project_id = running.project_id if running is not None else None
-    if prefs.project_day_total and project_id:
-        times.append(_window_minutes(entries, running, day_start, now, project_id))
-    if prefs.project_week_total and project_id:
-        times.append(_window_minutes(entries, running, week_start, now, project_id))
+    if prefs.project_day_total:
+        times.append(
+            _window_minutes(entries, running, day_start, now, project_id) if project_id else None
+        )
+    if prefs.project_week_total:
+        times.append(
+            _window_minutes(entries, running, week_start, now, project_id) if project_id else None
+        )
     if prefs.day_total:
         times.append(_window_minutes(entries, running, day_start, now))
     if prefs.week_total:
@@ -210,14 +219,15 @@ def compute_indicator_times(
     return tuple(times)
 
 
-def format_indicator_label(project_name: str | None, times: Sequence[int] = ()) -> str:
+def format_indicator_label(project_name: str | None, times: Sequence[int | None] = ()) -> str:
     """Compute the top-bar label for the current timer state.
 
     ``None`` project means no timer is running. The pre-computed ``times``
     (see :func:`compute_indicator_times`) render inside one trailing
     parenthesis joined by " / ", deliberately unlabeled - users learn their
-    own configured order, e.g. ``\u25b6 Agenda (0:32 / 5:31)`` or
-    ``Not tracking (5:31)``. Names are flattened to a single line and
+    own configured order, e.g. ``\u25b6 Agenda (0:32 / 5:31)``. A ``None``
+    time renders as "-" so idle labels keep the configured pattern, e.g.
+    ``Not tracking (- / 5:31)``. Names are flattened to a single line and
     truncated so the top bar is never flooded.
     """
     name = " ".join(project_name.split()) if project_name else ""
@@ -229,7 +239,8 @@ def format_indicator_label(project_name: str | None, times: Sequence[int] = ()) 
     else:
         label = IDLE_LABEL
     if times:
-        label += " (" + " / ".join(format_duration_hm(m) for m in times) + ")"
+        rendered = (format_duration_hm(m) if m is not None else "-" for m in times)
+        label += " (" + " / ".join(rendered) + ")"
     return label
 
 
@@ -288,7 +299,7 @@ class TimerIndicator:
         """
         return self._registered
 
-    def set_tracking(self, project_name: str | None, times: Sequence[int] = ()) -> None:
+    def set_tracking(self, project_name: str | None, times: Sequence[int | None] = ()) -> None:
         """Update the displayed label; ``None`` project means nothing is tracked."""
         new_label = format_indicator_label(project_name, times)
         tracking = project_name is not None and bool(" ".join(project_name.split()))

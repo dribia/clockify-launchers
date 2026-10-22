@@ -48,6 +48,14 @@ class TestFormatIndicatorLabel:
             == "\u25b6 Tank (0:05 / 1:05 / 2:05 / 3:05 / 4:05)"
         )
 
+    def test_none_times_render_as_placeholder(self) -> None:
+        """Unavailable times keep their position so the pattern is stable."""
+        assert format_indicator_label(None, (None, 331)) == f"{IDLE_LABEL} (- / 5:31)"
+        assert (
+            format_indicator_label(None, (None, None, None, 331, 2404))
+            == f"{IDLE_LABEL} (- / - / - / 5:31 / 40:04)"
+        )
+
     def test_negative_minutes_clamped(self) -> None:
         from clockify_launchers.infrastructure.status_notifier import format_duration_hm
 
@@ -136,7 +144,7 @@ class TestComputeIndicatorTimes:
         # day 60+30+30; week 60+30+120+30.
         assert times == (30, 90, 210, 120, 240)
 
-    def test_idle_skips_entry_and_project_times(self) -> None:
+    def test_idle_placeholds_entry_and_project_times(self) -> None:
         from clockify_launchers.infrastructure.config_store import IndicatorPrefs
         from clockify_launchers.infrastructure.status_notifier import compute_indicator_times
 
@@ -152,7 +160,7 @@ class TestComputeIndicatorTimes:
         times = compute_indicator_times(
             prefs, entries, None, self.NOW, self.DAY_START, self.WEEK_START
         )
-        assert times == (90, 210)  # only day and week totals
+        assert times == (None, None, None, 90, 210)  # placeholders keep positions
 
     def test_all_disabled_yields_no_times(self) -> None:
         from clockify_launchers.infrastructure.config_store import IndicatorPrefs
@@ -186,7 +194,7 @@ class TestComputeIndicatorTimes:
         )
         assert format_indicator_label("Agenda", times) == "\u25b6 Agenda (0:30 / 2:00)"
 
-    def test_running_entry_without_project_skips_project_totals(self) -> None:
+    def test_running_entry_without_project_placeholds_project_totals(self) -> None:
         from datetime import timedelta
 
         from clockify_launchers.infrastructure.config_store import IndicatorPrefs
@@ -199,7 +207,7 @@ class TestComputeIndicatorTimes:
         times = compute_indicator_times(
             prefs, [], running, self.NOW, self.DAY_START, self.WEEK_START
         )
-        assert times == (10,)
+        assert times == (10, None, None)
 
     def test_entries_clipped_to_window_start(self) -> None:
         from datetime import timedelta
