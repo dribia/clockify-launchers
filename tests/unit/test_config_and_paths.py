@@ -80,6 +80,44 @@ class TestConfigStore:
         assert stat.S_IMODE(path.stat().st_mode) == 0o600
         assert not list((tmp_path / "sub").glob(".*.tmp.*"))
 
+    def test_indicator_prefs_roundtrip(self, tmp_path: Path) -> None:
+        from clockify_launchers.infrastructure.config_store import IndicatorPrefs
+
+        store = ConfigStore(tmp_path / "config.json")
+        cfg = AppConfig()
+        cfg.indicator = IndicatorPrefs(
+            entry_time=False,
+            project_day_total=True,
+            project_week_total=True,
+            day_total=False,
+            week_total=True,
+        )
+        store.save(cfg)
+        assert store.load().indicator == cfg.indicator
+
+    def test_indicator_defaults_match_legacy_label(self, tmp_path: Path) -> None:
+        """Fresh/absent config: entry time + daily total, like the old toggle on."""
+        cfg = ConfigStore(tmp_path / "config.json").load()
+        assert cfg.indicator.entry_time is True
+        assert cfg.indicator.day_total is True
+        assert cfg.indicator.project_day_total is False
+        assert cfg.indicator.project_week_total is False
+        assert cfg.indicator.week_total is False
+
+    def test_legacy_show_times_false_migrates_to_all_off(self, tmp_path: Path) -> None:
+        path = tmp_path / "config.json"
+        path.write_text(json.dumps({"indicator_show_times": False}))
+        cfg = ConfigStore(path).load()
+        assert not cfg.indicator.needs_entries
+        assert cfg.indicator.entry_time is False
+
+    def test_legacy_show_times_true_migrates_to_defaults(self, tmp_path: Path) -> None:
+        path = tmp_path / "config.json"
+        path.write_text(json.dumps({"indicator_show_times": True}))
+        cfg = ConfigStore(path).load()
+        assert cfg.indicator.entry_time is True
+        assert cfg.indicator.day_total is True
+
 
 class TestNormalizeBaseUrl:
     def test_default_global(self) -> None:
