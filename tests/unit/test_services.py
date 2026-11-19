@@ -148,7 +148,7 @@ class TestScanLegacyLaunchers:
 class TestIconService:
     def test_generated_svg_contains_monogram_and_color(self) -> None:
         svg = generate_svg_icon("Alpha Project", "#03A9F4")
-        assert "TP" in svg
+        assert "AP" in svg
         assert "#03A9F4" in svg
         assert svg.startswith("<svg")
 
