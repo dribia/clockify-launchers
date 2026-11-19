@@ -16,9 +16,18 @@ jobs:
         uses: actions/checkout@v5
       - name: Get release tag
         id: get-tag
+        env:
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        shell: bash
         run: |
-          TAG=$(echo "${{ github.event.head_commit.message }}" | head -n1 | grep -oP 'v[0-9]+\.[0-9]+\.[0-9]+');
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          # Pass the commit message as data, never interpolate it into shell code.
+          first_line="${HEAD_COMMIT_MESSAGE%%$'\n'*}"
+          if [[ "$first_line" =~ Version[[:space:]]bump[[:space:]]to[[:space:]](v[0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            printf 'tag=%s\n' "${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Could not extract a version tag from the bump commit" >&2
+            exit 1
+          fi
       - name: Release
         uses: softprops/action-gh-release@v2
         with:

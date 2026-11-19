@@ -48,6 +48,9 @@ jobs:
       - name: Build Debian package
         run: make deb
 
+      - name: Build Debian source package
+        run: make source
+
       - name: Upload UI artifacts
         if: failure()
         uses: actions/upload-artifact@v4
