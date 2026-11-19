@@ -85,7 +85,7 @@ def db() -> Database:
             last_validated_at=now,
         )
     )
-    database.cache_projects([Project(id="p1", workspace_id=WS, name="Tank")], now)
+    database.cache_projects([Project(id="p1", workspace_id=WS, name="Alpha")], now)
     database.cache_tasks([Task(id="k1", project_id="p1", name="Build", active=True)], now)
     database.cache_tags([Tag(id="t1", workspace_id=WS, name="Project")], now)
     return database
@@ -102,7 +102,7 @@ def make_launcher(db: Database, task_id=None, tag_ids=(), description=None) -> L
             tag_ids=tuple(tag_ids),
             description=description,
         ),
-        display_name="Kaito",
+        display_name="Beta",
     )
     db.save_launcher(launcher)
     return launcher
@@ -130,7 +130,7 @@ def test_start_with_no_running_timer(db, tmp_path):
 def test_start_passes_project_billable_default(db, tmp_path):
     now = utc_now()
     db.cache_projects(
-        [Project(id="p1", workspace_id=WS, name="Tank", billable_by_default=True)], now
+        [Project(id="p1", workspace_id=WS, name="Alpha", billable_by_default=True)], now
     )
     client = ScriptedClient(running_entry=None)
     launcher = make_launcher(db)
@@ -220,7 +220,7 @@ def test_ambiguous_start_unconfirmed_stays_ambiguous_no_second_post(db, tmp_path
 def test_target_validation_failure_before_any_stop(db, tmp_path):
     now = utc_now()
     # project is archived both in the cache and per the client refresh
-    archived = Project(id="p1", workspace_id=WS, name="Tank", archived=True)
+    archived = Project(id="p1", workspace_id=WS, name="Alpha", archived=True)
     db.cache_projects([archived], now)
     client = ScriptedClient(projects=[archived], running_entry=_running("p2"))
     launcher = make_launcher(db)

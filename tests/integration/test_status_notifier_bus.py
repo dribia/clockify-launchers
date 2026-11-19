@@ -65,7 +65,7 @@ def step1():
 
 
 def step2():
-    ind.set_tracking("Tank")
+    ind.set_tracking("Alpha")
     conn.call(
         conn.get_unique_name(), "/StatusNotifierItem",
         "org.freedesktop.DBus.Properties", "Get",
@@ -90,7 +90,7 @@ loop.run()
 assert registered == [(conn.get_unique_name(),)], registered
 assert out["all"]["Id"] == "com.dribia.ClockifyLaunchers", out
 assert out["all"]["XAyatanaLabel"] == "Not tracking", out
-assert out["label"] == "\\u25b6 Tank", out
+assert out["label"] == "\\u25b6 Alpha", out
 assert out["all"]["Menu"] == "/StatusNotifierItem/Menu", out
 revision, layout = out["layout"]
 root_id, root_props, children = layout

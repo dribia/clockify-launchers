@@ -158,12 +158,12 @@ def suggestions_add() -> Iterator[AppHandle]:
 
 
 def test_main_window_shows_launchers(populated: AppHandle) -> None:
-    assert populated.find("Kaito")
+    assert populated.find("Beta")
     assert populated.find("Research")
 
 
 def test_start_launcher_from_ui(populated: AppHandle) -> None:
-    populated.click("Start Kaito", role_name="push button")
+    populated.click("Start Beta", role_name="push button")
     time.sleep(1.0)
     # The fake backend starts a timer; the current-timer bar appears.
     stop = populated.maybe_find("Stop", "push button")

@@ -38,9 +38,9 @@ LID = "6d17b662-5ba4-4c39-903b-cc319a633fe7"
 class TestParseExecLine:
     def test_full_command_with_repeated_tags(self) -> None:
         parsed = parse_exec_line(
-            "/usr/bin/clockify-cli in -p Tank -T Deploy --tag one --tag two -d 'Some work' -w wsx"
+            "/usr/bin/clockify-cli in -p Alpha -T Deploy --tag one --tag two -d 'Some work' -w wsx"
         )
-        assert parsed["project"] == "Tank"
+        assert parsed["project"] == "Alpha"
         assert parsed["task"] == "Deploy"
         assert parsed["tags"] == ("one", "two")
         assert parsed["description"] == "Some work"
@@ -48,20 +48,20 @@ class TestParseExecLine:
         assert parsed["ignored"] == ()
 
     def test_ignorable_flags_reported(self) -> None:
-        parsed = parse_exec_line("clockify-cli in -p Tank -i --md")
+        parsed = parse_exec_line("clockify-cli in -p Alpha -i --md")
         assert parsed["ignored"] == ("-i", "--md")
 
     def test_bare_executable_name(self) -> None:
-        parsed = parse_exec_line("clockify-cli in --project Tank")
-        assert parsed["project"] == "Tank"
+        parsed = parse_exec_line("clockify-cli in --project Alpha")
+        assert parsed["project"] == "Alpha"
 
     @pytest.mark.parametrize(
         "line",
         [
-            "clockify-cli in -p Tank; rm -rf /",
-            "clockify-cli in -p Tank | cat",
-            "clockify-cli in -p Tank && evil",
-            "clockify-cli in -p Tank > /tmp/out",
+            "clockify-cli in -p Alpha; rm -rf /",
+            "clockify-cli in -p Alpha | cat",
+            "clockify-cli in -p Alpha && evil",
+            "clockify-cli in -p Alpha > /tmp/out",
             "clockify-cli in -p `whoami`",
             "clockify-cli in -p $(id)",
             "clockify-cli in -p ${HOME}",
@@ -73,19 +73,19 @@ class TestParseExecLine:
 
     def test_rejects_env_assignment(self) -> None:
         with pytest.raises(ImportRejected, match="environment assignments"):
-            parse_exec_line("FOO=bar clockify-cli in -p Tank")
+            parse_exec_line("FOO=bar clockify-cli in -p Alpha")
 
     def test_rejects_unknown_flag(self) -> None:
         with pytest.raises(ImportRejected, match="unknown option"):
-            parse_exec_line("clockify-cli in -p Tank --frobnicate")
+            parse_exec_line("clockify-cli in -p Alpha --frobnicate")
 
     def test_rejects_wrong_executable(self) -> None:
         with pytest.raises(ImportRejected, match="executable"):
-            parse_exec_line("/usr/bin/other-cli in -p Tank")
+            parse_exec_line("/usr/bin/other-cli in -p Alpha")
 
     def test_rejects_wrong_subcommand(self) -> None:
         with pytest.raises(ImportRejected, match="expected 'in'"):
-            parse_exec_line("clockify-cli out -p Tank")
+            parse_exec_line("clockify-cli out -p Alpha")
 
     def test_rejects_missing_project(self) -> None:
         with pytest.raises(ImportRejected, match="no project"):
@@ -97,11 +97,11 @@ class TestParseExecLine:
 
     def test_rejects_response_file(self) -> None:
         with pytest.raises(ImportRejected, match="response files"):
-            parse_exec_line("clockify-cli in -p Tank @args.txt")
+            parse_exec_line("clockify-cli in -p Alpha @args.txt")
 
     def test_rejects_extra_positional(self) -> None:
         with pytest.raises(ImportRejected, match="unexpected argument"):
-            parse_exec_line("clockify-cli in extra -p Tank")
+            parse_exec_line("clockify-cli in extra -p Alpha")
 
     def test_rejects_malformed_quoting(self) -> None:
         with pytest.raises(ImportRejected, match="malformed quoting"):
@@ -117,19 +117,19 @@ class TestScanLegacyLaunchers:
         path.write_text(f"[Desktop Entry]\nType=Application\nName={name}\nExec={exec_line}\n")
 
     def test_finds_legacy(self, tmp_path: Path) -> None:
-        self._desktop(tmp_path / "kaito.desktop", "Kaito", "clockify-cli in -p Tank -g Project")
+        self._desktop(tmp_path / "beta.desktop", "Beta", "clockify-cli in -p Alpha -g Project")
         found = scan_legacy_launchers(tmp_path)
         assert len(found) == 1
         lc = found[0]
-        assert lc.name == "Kaito"
-        assert lc.project == "Tank"
+        assert lc.name == "Beta"
+        assert lc.project == "Alpha"
         assert lc.tags == ("Project",)
 
     def test_skips_managed_prefix(self, tmp_path: Path) -> None:
         self._desktop(
             tmp_path / f"{constants.DESKTOP_FILE_PREFIX}{LID}.desktop",
             "Owned",
-            "clockify-cli in -p Tank",
+            "clockify-cli in -p Alpha",
         )
         assert scan_legacy_launchers(tmp_path) == []
 
@@ -138,7 +138,7 @@ class TestScanLegacyLaunchers:
         assert scan_legacy_launchers(tmp_path) == []
 
     def test_skips_rejected_exec(self, tmp_path: Path) -> None:
-        self._desktop(tmp_path / "bad.desktop", "Bad", "clockify-cli out -p Tank")
+        self._desktop(tmp_path / "bad.desktop", "Bad", "clockify-cli out -p Alpha")
         assert scan_legacy_launchers(tmp_path) == []
 
     def test_missing_dir(self, tmp_path: Path) -> None:
@@ -147,8 +147,8 @@ class TestScanLegacyLaunchers:
 
 class TestIconService:
     def test_generated_svg_contains_monogram_and_color(self) -> None:
-        svg = generate_svg_icon("Tank Project", "#03A9F4")
-        assert "TP" in svg
+        svg = generate_svg_icon("Alpha Project", "#03A9F4")
+        assert "AP" in svg
         assert "#03A9F4" in svg
         assert svg.startswith("<svg")
 
@@ -160,8 +160,8 @@ class TestIconService:
         assert text_color_for("garbage") == "#FFFFFF"
 
     def test_monogram_edge_cases(self) -> None:
-        assert monogram("Tank") == "TA"
-        assert monogram("Tank Project") == "TP"
+        assert monogram("Alpha") == "AL"
+        assert monogram("Alpha Project") == "AP"
         assert monogram("a b c") == "AB"
         assert monogram("") == "?"
         assert monogram("   ") == "?"
@@ -176,7 +176,7 @@ class TestIconService:
 
     def test_write_generated(self, tmp_path: Path) -> None:
         svc = IconService(tmp_path / "icons")
-        path = svc.write_generated(LID, "Tank", "#03A9F4")
+        path = svc.write_generated(LID, "Alpha", "#03A9F4")
         assert path == tmp_path / "icons" / f"{LID}.svg"
         assert "#03A9F4" in path.read_text()
 
@@ -237,7 +237,7 @@ class TestLauncherJsonRoundtrip:
                 tag_ids=("b", "a"),
                 description="desc",
             ),
-            display_name="Kaito",
+            display_name="Beta",
             comment="c",
             icon_kind=IconKind.SELECTED,
             icon_path="/tmp/i.png",

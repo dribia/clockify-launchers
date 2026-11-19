@@ -23,37 +23,37 @@ DEMO_EMAIL = "ada@example.com"
 DEMO_NAME = "Ada Demo"
 DEMO_ACCOUNT_ID = "aaaaaaaa-0000-0000-0000-000000000001"
 
-WS_MAIN = Workspace(id="ws-dribia", name="Dribia")
+WS_MAIN = Workspace(id="ws-example", name="Example Workspace")
 WS_SIDE = Workspace(id="ws-personal", name="Personal")
 
 WORKSPACES = [WS_MAIN, WS_SIDE]
 
 PROJECTS = [
     Project(
-        id="prj-tank",
+        id="prj-alpha",
         workspace_id=WS_MAIN.id,
-        name="Tank",
+        name="Alpha",
         color="#03A9F4",
         client_name="Acme Corp",
     ),
-    Project(id="prj-kaito", workspace_id=WS_MAIN.id, name="Kaito", color="#8BC34A"),
+    Project(id="prj-beta", workspace_id=WS_MAIN.id, name="Beta", color="#8BC34A"),
     Project(
         id="prj-longname",
         workspace_id=WS_MAIN.id,
         name="Extremely Long Project Name That Tests Layout Wrapping Behavior In Rows",
         color="#9C27B0",
     ),
-    Project(id="prj-ops", workspace_id=WS_MAIN.id, name="Internal Ops", color="#FF9800"),
+    Project(id="prj-ops", workspace_id=WS_MAIN.id, name="Team Operations", color="#FF9800"),
     Project(id="prj-research", workspace_id=WS_MAIN.id, name="Research", color="#009688"),
     Project(id="prj-website", workspace_id=WS_MAIN.id, name="Website", color="#E91E63"),
     Project(id="prj-archived", workspace_id=WS_MAIN.id, name="Old Archive", archived=True),
 ]
 
 TASKS = [
-    Task(id="task-model", project_id="prj-tank", name="Model training"),
-    Task(id="task-etl", project_id="prj-tank", name="ETL pipeline"),
-    Task(id="task-report", project_id="prj-kaito", name="Quarterly report"),
-    Task(id="task-inactive", project_id="prj-kaito", name="Legacy work", active=False),
+    Task(id="task-model", project_id="prj-alpha", name="Model training"),
+    Task(id="task-etl", project_id="prj-alpha", name="ETL pipeline"),
+    Task(id="task-report", project_id="prj-beta", name="Quarterly report"),
+    Task(id="task-inactive", project_id="prj-beta", name="Legacy work", active=False),
 ]
 
 TAGS = [
@@ -89,12 +89,12 @@ def _entry(
 def demo_time_entries() -> list[TimeEntry]:
     """Recent activity supporting add-suggestions and staleness scenarios."""
     entries = []
-    # Frequent recent target: Tank / Model training / Project tag (add candidate)
+    # Frequent recent target: Alpha / Model training / Project tag (add candidate)
     for index in range(6):
         entries.append(
             _entry(
-                f"te-tank-{index}",
-                "prj-tank",
+                f"te-alpha-{index}",
+                "prj-alpha",
                 days_ago=1 + index * 3,
                 task_id="task-model",
                 tag_ids=("tag-project",),

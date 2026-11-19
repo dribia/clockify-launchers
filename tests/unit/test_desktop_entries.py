@@ -27,10 +27,10 @@ LID2 = "11111111-2222-3333-4444-555555555555"
 def _spec(**kwargs: object) -> DesktopEntrySpec:
     defaults: dict = {
         "launcher_id": LID,
-        "name": "Kaito",
-        "comment": "Start Clockify timer: Tank - Project",
+        "name": "Beta",
+        "comment": "Start Clockify timer: Alpha - Project",
         "icon_path": "/tmp/icon.svg",
-        "keywords": ("Kaito", "Tank"),
+        "keywords": ("Beta", "Alpha"),
     }
     defaults.update(kwargs)
     return DesktopEntrySpec(**defaults)
@@ -48,7 +48,7 @@ class TestSerialize:
         data = serialize_desktop_entry(_spec())
         for key in (
             "Type=Application",
-            "Name=Kaito",
+            "Name=Beta",
             "Version=1.0",
             "Terminal=false",
             "StartupNotify=false",

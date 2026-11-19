@@ -19,10 +19,10 @@ class TestFormatIndicatorLabel:
         assert format_indicator_label("   ") == IDLE_LABEL
 
     def test_project_name_is_prefixed(self) -> None:
-        assert format_indicator_label("Tank") == "\u25b6 Tank"
+        assert format_indicator_label("Alpha") == "\u25b6 Alpha"
 
     def test_newlines_and_runs_of_spaces_are_flattened(self) -> None:
-        assert format_indicator_label("Tank\n  Project\t X") == "\u25b6 Tank Project X"
+        assert format_indicator_label("Alpha\n  Project\t X") == "\u25b6 Alpha Project X"
 
     def test_long_names_are_truncated_with_ellipsis(self) -> None:
         label = format_indicator_label("P" * 100)
@@ -40,12 +40,12 @@ class TestFormatIndicatorLabel:
         assert format_indicator_label("Agenda", (32, 331)) == "\u25b6 Agenda (0:32 / 5:31)"
 
     def test_single_time(self) -> None:
-        assert format_indicator_label("Tank", (61,)) == "\u25b6 Tank (1:01)"
+        assert format_indicator_label("Alpha", (61,)) == "\u25b6 Alpha (1:01)"
 
     def test_many_times_keep_configured_order(self) -> None:
         assert (
-            format_indicator_label("Tank", (5, 65, 125, 185, 245))
-            == "\u25b6 Tank (0:05 / 1:05 / 2:05 / 3:05 / 4:05)"
+            format_indicator_label("Alpha", (5, 65, 125, 185, 245))
+            == "\u25b6 Alpha (0:05 / 1:05 / 2:05 / 3:05 / 4:05)"
         )
 
     def test_none_times_render_as_placeholder(self) -> None:
@@ -62,7 +62,7 @@ class TestFormatIndicatorLabel:
         assert format_duration_hm(-5) == "0:00"
 
     def test_times_omitted_when_empty(self) -> None:
-        assert format_indicator_label("Tank") == "\u25b6 Tank"
+        assert format_indicator_label("Alpha") == "\u25b6 Alpha"
         assert format_indicator_label(None) == IDLE_LABEL
 
 
@@ -233,14 +233,14 @@ class TestTimerIndicator:
 
     def test_set_tracking_updates_label(self) -> None:
         indicator = TimerIndicator()
-        indicator.set_tracking("Tank")
-        assert indicator.label == "\u25b6 Tank"
+        indicator.set_tracking("Alpha")
+        assert indicator.label == "\u25b6 Alpha"
         indicator.set_tracking(None)
         assert indicator.label == IDLE_LABEL
 
     def test_set_tracking_without_bus_is_safe(self) -> None:
         indicator = TimerIndicator()
-        indicator.set_tracking("Tank")  # not published: must not raise
+        indicator.set_tracking("Alpha")  # not published: must not raise
         indicator.refresh_label()  # heartbeat re-emit: safe unpublished
         indicator.unpublish()  # idempotent without publish
 
@@ -252,7 +252,7 @@ class TestTimerIndicator:
         zero-width suffix. The visible label is unchanged.
         """
         indicator = TimerIndicator()
-        indicator.set_tracking("Tank")
+        indicator.set_tracking("Alpha")
         base = indicator.properties()["XAyatanaLabel"].get_string()
         indicator.refresh_label()
         first = indicator.properties()["XAyatanaLabel"].get_string()
@@ -262,11 +262,11 @@ class TestTimerIndicator:
         assert second == base
         assert first.replace("\u200b", "") == base
         # The public label (used by app logic) never carries the suffix.
-        assert indicator.label == "\u25b6 Tank"
+        assert indicator.label == "\u25b6 Alpha"
 
     def test_properties_shape(self) -> None:
         indicator = TimerIndicator()
-        indicator.set_tracking("Tank")
+        indicator.set_tracking("Alpha")
         props = indicator.properties()
         assert props["Id"].get_string() == constants.APP_ID
         assert props["Title"].get_string() == constants.APP_NAME
@@ -274,13 +274,13 @@ class TestTimerIndicator:
         assert props["Category"].get_string() == "ApplicationStatus"
         assert props["IconName"].get_string() == constants.APP_ID
         assert props["ItemIsMenu"].get_boolean() is False
-        assert props["XAyatanaLabel"].get_string() == "\u25b6 Tank"
+        assert props["XAyatanaLabel"].get_string() == "\u25b6 Alpha"
         # ToolTip carries the same label as its description field.
-        assert props["ToolTip"].unpack()[3] == "\u25b6 Tank"
+        assert props["ToolTip"].unpack()[3] == "\u25b6 Alpha"
 
     def test_property_set_is_closed(self) -> None:
         indicator = TimerIndicator()
-        indicator.set_tracking("Tank")
+        indicator.set_tracking("Alpha")
         # Properties expose only constants and the label.
         names = set(indicator.properties())
         assert names == {
@@ -312,7 +312,7 @@ class TestIndicatorMenu:
         indicator = TimerIndicator(on_stop=lambda: None)
         items = dict(indicator.menu_items())
         assert items[2]["enabled"].get_boolean() is False
-        indicator.set_tracking("Tank")
+        indicator.set_tracking("Alpha")
         items = dict(indicator.menu_items())
         assert items[2]["enabled"].get_boolean() is True
         indicator.set_tracking(None)

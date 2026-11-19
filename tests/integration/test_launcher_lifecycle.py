@@ -17,10 +17,10 @@ from clockify_launchers.domain.models import (
 )
 
 
-def tank_target() -> LauncherTarget:
+def alpha_target() -> LauncherTarget:
     return LauncherTarget(
         workspace_id=fixtures.WS_MAIN.id,
-        project_id="prj-tank",
+        project_id="prj-alpha",
         task_id="task-model",
         tag_ids=("tag-project",),
     )
@@ -28,7 +28,7 @@ def tank_target() -> LauncherTarget:
 
 def test_create_writes_valid_desktop_file(env):
     launcher = env.launcher_service.create(
-        account_id=env.account.id, target=tank_target(), display_name="Kaito"
+        account_id=env.account.id, target=alpha_target(), display_name="Beta"
     )
     path = Path(launcher.desktop_path)
     assert path.exists()
@@ -53,19 +53,19 @@ def test_create_writes_valid_desktop_file(env):
 
 def test_edit_rename_keeps_filename_stable(env):
     launcher = env.launcher_service.create(
-        account_id=env.account.id, target=tank_target(), display_name="Kaito"
+        account_id=env.account.id, target=alpha_target(), display_name="Beta"
     )
     original_path = Path(launcher.desktop_path)
-    updated = env.launcher_service.update(launcher, display_name="Renamed Kaito")
-    assert updated.display_name == "Renamed Kaito"
+    updated = env.launcher_service.update(launcher, display_name="Renamed Beta")
+    assert updated.display_name == "Renamed Beta"
     assert Path(updated.desktop_path) == original_path
     assert original_path.exists()
-    assert "Name=Renamed Kaito" in original_path.read_text()
+    assert "Name=Renamed Beta" in original_path.read_text()
 
 
 def test_pin_unpin(env):
     launcher = env.launcher_service.create(
-        account_id=env.account.id, target=tank_target(), display_name="Kaito"
+        account_id=env.account.id, target=alpha_target(), display_name="Beta"
     )
     unpinned = env.launcher_service.set_pinned(launcher, False)
     assert unpinned.management_policy is ManagementPolicy.MANAGED
@@ -77,7 +77,7 @@ def test_pin_unpin(env):
 
 def test_delete_and_restore(env):
     launcher = env.launcher_service.create(
-        account_id=env.account.id, target=tank_target(), display_name="Kaito"
+        account_id=env.account.id, target=alpha_target(), display_name="Beta"
     )
     path = Path(launcher.desktop_path)
     removed = env.launcher_service.delete(launcher)
@@ -90,7 +90,7 @@ def test_delete_and_restore(env):
     assert restored is not None
     assert restored.id == launcher.id
     assert restored.target == launcher.target
-    assert restored.display_name == "Kaito"
+    assert restored.display_name == "Beta"
     assert restored.management_policy is ManagementPolicy.PINNED
     assert Path(restored.desktop_path).exists()
     assert env.db.get_tombstone(launcher.id) is None
@@ -98,7 +98,7 @@ def test_delete_and_restore(env):
 
 def test_external_modification_flow(env):
     launcher = env.launcher_service.create(
-        account_id=env.account.id, target=tank_target(), display_name="Kaito"
+        account_id=env.account.id, target=alpha_target(), display_name="Beta"
     )
     path = Path(launcher.desktop_path)
     path.write_text(path.read_text() + "\n# user edit\n")
@@ -131,7 +131,7 @@ def test_external_modification_flow(env):
 
 def test_reconcile_recreates_missing_file(env):
     launcher = env.launcher_service.create(
-        account_id=env.account.id, target=tank_target(), display_name="Kaito"
+        account_id=env.account.id, target=alpha_target(), display_name="Beta"
     )
     path = Path(launcher.desktop_path)
     path.unlink()
@@ -142,17 +142,17 @@ def test_reconcile_recreates_missing_file(env):
 
 def test_duplicate_signature_detection(env):
     env.launcher_service.create(
-        account_id=env.account.id, target=tank_target(), display_name="Kaito"
+        account_id=env.account.id, target=alpha_target(), display_name="Beta"
     )
-    dup = env.launcher_service.duplicate_of(tank_target())
+    dup = env.launcher_service.duplicate_of(alpha_target())
     assert dup is not None
     other = LauncherTarget(workspace_id=fixtures.WS_MAIN.id, project_id="prj-website")
     assert env.launcher_service.duplicate_of(other) is None
 
 
 def test_same_target_with_different_description_is_not_a_duplicate(env):
-    base = tank_target()
-    env.launcher_service.create(account_id=env.account.id, target=base, display_name="Kaito")
+    base = alpha_target()
+    env.launcher_service.create(account_id=env.account.id, target=base, display_name="Beta")
     described = LauncherTarget(
         workspace_id=base.workspace_id,
         project_id=base.project_id,
@@ -164,20 +164,20 @@ def test_same_target_with_different_description_is_not_a_duplicate(env):
     assert env.launcher_service.duplicate_of(described) is None
     assert env.launcher_service.same_target_of(described) is not None
     second = env.launcher_service.create(
-        account_id=env.account.id, target=described, display_name="Kaito weekly"
+        account_id=env.account.id, target=described, display_name="Beta weekly"
     )
     assert second.target.signature == base.signature
     # Now the described variant IS an exact duplicate of the second launcher.
     assert env.launcher_service.duplicate_of(described) is not None
     # And the undescribed one still matches the first.
-    assert env.launcher_service.duplicate_of(base).display_name == "Kaito"
+    assert env.launcher_service.duplicate_of(base).display_name == "Beta"
 
 
 def test_imported_launcher_pinned_by_default(env):
     launcher = env.launcher_service.create(
         account_id=env.account.id,
-        target=tank_target(),
-        display_name="Legacy Kaito",
+        target=alpha_target(),
+        display_name="Legacy Beta",
         source=LauncherSource.IMPORTED,
     )
     assert launcher.source is LauncherSource.IMPORTED
@@ -192,10 +192,10 @@ def test_desktop_keywords_include_client_name(env):
 
     launcher = env.launcher_service.create(
         account_id=env.account.id,
-        target=LauncherTarget(workspace_id="ws-dribia", project_id="prj-tank"),
-        display_name="Tank work",
+        target=LauncherTarget(workspace_id="ws-example", project_id="prj-alpha"),
+        display_name="Alpha work",
     )
     content = Path(launcher.desktop_path).read_text(encoding="utf-8")
     keywords_line = next(line for line in content.splitlines() if line.startswith("Keywords="))
-    assert "Tank" in keywords_line
+    assert "Alpha" in keywords_line
     assert "Acme Corp" in keywords_line

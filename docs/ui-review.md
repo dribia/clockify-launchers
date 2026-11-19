@@ -99,7 +99,7 @@ up to five times.
 
 - `suggestions-add.png` (1000x720) recaptured after adding the cap-blocked
   candidates group to the Suggestions page (seeded in the demo state with
-  "Kaito - Quarterly report" and "Research"). The capture harness validated
+  "Beta - Quarterly report" and "Research"). The capture harness validated
   the image (size, color count, non-blank) and the 8 AT-SPI flows pass.
   NOTE: the coding agent could not visually inspect the PNG this round
   (no image input available); the owner should glance at the new group's

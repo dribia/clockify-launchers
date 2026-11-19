@@ -15,16 +15,16 @@ from clockify_launchers.services.import_service import scan_legacy_launchers
 LEGACY_CONTENT = """[Desktop Entry]
 Version=1.0
 Type=Application
-Name=Kaito Legacy
+Name=Beta Legacy
 Comment=Old Clockify launcher
 Icon=clock
-Exec=clockify-cli in -p Tank -g Project
+Exec=clockify-cli in -p Alpha -g Project
 Terminal=false
 """
 
 
 def write_legacy(apps_dir: Path) -> Path:
-    path = apps_dir / "kaito-legacy.desktop"
+    path = apps_dir / "beta-legacy.desktop"
     path.write_text(LEGACY_CONTENT)
     return path
 
@@ -35,10 +35,10 @@ def test_scan_finds_and_parses_legacy_launcher(env):
     assert len(found) == 1
     legacy = found[0]
     assert legacy.path == path
-    assert legacy.name == "Kaito Legacy"
+    assert legacy.name == "Beta Legacy"
     assert legacy.comment == "Old Clockify launcher"
     assert legacy.icon == "clock"
-    assert legacy.project == "Tank"
+    assert legacy.project == "Alpha"
     assert legacy.task is None
     assert legacy.tags == ("Project",)
     assert legacy.description is None
@@ -47,7 +47,7 @@ def test_scan_finds_and_parses_legacy_launcher(env):
 def test_scan_ignores_unsafe_and_owned_files(env):
     apps = env.paths.applications_dir
     (apps / "evil.desktop").write_text(
-        "[Desktop Entry]\nType=Application\nName=Evil\nExec=clockify-cli in -p Tank; rm -rf /\n"
+        "[Desktop Entry]\nType=Application\nName=Evil\nExec=clockify-cli in -p Alpha; rm -rf /\n"
     )
     (apps / "unrelated.desktop").write_text(
         "[Desktop Entry]\nType=Application\nName=Editor\nExec=gedit\n"

@@ -69,20 +69,20 @@ def _populate_launchers(context: AppContext) -> None:
     now = fixtures.DEMO_NOW
     ls = context.launcher_service
     # Manual, pinned, healthy, with task and tag
-    tank = ls.create(
+    alpha = ls.create(
         account_id=fixtures.DEMO_ACCOUNT_ID,
         target=LauncherTarget(
             workspace_id=fixtures.WS_MAIN.id,
-            project_id="prj-tank",
+            project_id="prj-alpha",
             task_id="task-model",
             tag_ids=("tag-project",),
         ),
-        display_name="Kaito",
+        display_name="Beta",
         source=LauncherSource.MANUAL,
         now=now,
     )
     context.db.save_launcher(
-        tank.with_(
+        alpha.with_(
             last_clockify_use_at=now - timedelta(days=1),
             last_start_success_at=now - timedelta(days=1),
         )
@@ -142,7 +142,7 @@ def _populate_launchers(context: AppContext) -> None:
             account_id=fixtures.DEMO_ACCOUNT_ID,
             target=LauncherTarget(
                 workspace_id=fixtures.WS_MAIN.id,
-                project_id="prj-kaito",
+                project_id="prj-beta",
                 tag_ids=("tag-support",),
                 description=f"Batch item {index + 1}",
             ),
@@ -161,7 +161,7 @@ def _add_suggestions(context: AppContext) -> None:
             launcher_id=None,
             target=LauncherTarget(
                 workspace_id=fixtures.WS_MAIN.id,
-                project_id="prj-tank",
+                project_id="prj-alpha",
                 task_id="task-etl",
                 tag_ids=("tag-project",),
             ),
