@@ -24,6 +24,15 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
+      - name: Check generated packaging files are not tracked
+        shell: bash
+        run: |
+          if git ls-files 'src/*.egg-info/*' 'debian/*.debhelper' 'debian/*.debhelper.*' | grep -q .; then
+            echo 'Generated build metadata must not be committed.' >&2
+            git ls-files 'src/*.egg-info/*' 'debian/*.debhelper' 'debian/*.debhelper.*'
+            exit 1
+          fi
+
       - name: Bootstrap
         run: make bootstrap
 
