@@ -5,7 +5,7 @@ STATES := onboarding-welcome onboarding-key onboarding-workspace onboarding-mode
 	suggestions-remove preferences offline auth-error externally-modified
 
 .PHONY: bootstrap resources run demo test lint format typecheck ui-test ui-capture \
-	ui-review validate-data deb lintian smoke-install test-apt-repo verify clean
+	ui-review validate-data deb source lintian smoke-install test-apt-repo verify clean
 
 bootstrap:
 	$(UV) venv --python /usr/bin/python3.12 --system-site-packages .venv
@@ -59,6 +59,9 @@ validate-data:
 
 deb:
 	scripts/build-deb.sh
+
+source:
+	bash scripts/build-source.sh
 
 lintian:
 	lintian --fail-on error dist/deb/*.deb
