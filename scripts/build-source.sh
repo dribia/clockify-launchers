@@ -36,5 +36,6 @@ mkdir -p dist/source
 cp "$work"/"${package}_"${upstream_version}.orig.tar.xz dist/source/
 cp "$work"/"${package}_"${version}.debian.tar.* dist/source/
 cp "$work"/"${package}_"${version}.dsc dist/source/
+cp "$work"/"${package}_"${version}_source.buildinfo dist/source/
 cp "$work"/"${package}_"${version}_source.changes dist/source/
 echo "Unsigned source package written to dist/source/; sign before uploading."
