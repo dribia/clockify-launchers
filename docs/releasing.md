@@ -1,122 +1,96 @@
-# Releasing
+# Releasing Clockify Launchers
+
+## Current distribution status
+
+The public distribution target is the [Dribia Stable Launchpad PPA](https://launchpad.net/~dribia/+archive/ubuntu/stable), `ppa:dribia/stable`.
+The previous private Google Artifact Registry APT publisher has been retired
+from this repository. **Launchpad publishing is not yet automated or live.**
+Do not announce PPA installation until a source upload has built successfully
+for the advertised Ubuntu release.
+
+GitHub releases remain useful for changelogs and release tags. The
+`release.yml` workflow creates a draft GitHub release after a version-bump
+PR is merged; publishing that draft no longer uploads an APT package until
+the Launchpad workflow is added.
 
 ## Version bump
 
-Update the version in all of these places (keep them identical):
+Keep these version locations consistent:
 
 1. `src/clockify_launchers/constants.py` — `VERSION`
 2. `pyproject.toml` — `[project] version`
-3. `debian/changelog` — new entry at the top (`dch` or manual)
-4. `data/com.dribia.ClockifyLaunchers.metainfo.xml` — `<releases>` entry
-5. `CHANGELOG.md` — move Unreleased content under the new version
+3. `debian/changelog` — a new versioned entry
+4. `data/com.dribia.ClockifyLaunchers.metainfo.xml` — `<releases>`
+5. `CHANGELOG.md` — move unreleased notes under the new version
+
+Use `make bump VERSION=patch` (or `minor` / `major`) locally, or run
+the GitHub Actions **bump** workflow to open a version-bump PR.
 
 ## Verification
 
-From a clean checkout:
+On a clean checkout, run:
 
 ```sh
-make verify        # lint + typecheck + test + validate-data + ui-capture + ui-test + deb
+make verify         # lint, types, tests, desktop metadata, UI and .deb build
+make lintian        # check the binary .deb
+make smoke-install  # installs and removes a built .deb (requires sudo)
+make test-apt-repo # local ephemeral-key APT repository test
 ```
 
-Then packaging checks:
+Once the Debian source-package migration PR is merged, also run:
 
 ```sh
-make deb           # build the .deb (scripts/build-deb.sh)
-make lintian       # lintian --fail-on error
-make smoke-install # install/run/remove in an isolated environment
-make test-apt-repo # build a locally signed test APT repo with an ephemeral key,
-                   # apt update, install by package name, smoke test, clean up
+make source         # unsigned Debian source package in dist/source/
 ```
 
-Run the packaging pipeline on both Ubuntu 24.04 and 26.04.
+The source package will use Debian source format `3.0 (quilt)` and an
+upstream `.orig.tar.xz`; Launchpad requires a signed **source** upload rather
+than our prebuilt `.deb`.
 
-Also review UI screenshots (`make ui-review`) and record the assessment in
-`docs/ui-review.md` before tagging.
+Verify packaging on Ubuntu 24.04 (noble) and Ubuntu 26.04 (resolute).
+The supported release must be reflected in `debian/changelog` for each
+upload, and each release needs a Debian version that upgrades cleanly from
+previously installed versions.
 
-## Production distribution
+Review the UI screenshots with `make ui-review` and record the assessment
+in `docs/ui-review.md` before tagging.
 
-Production APT repository hosting and signing are **external deployment
-decisions**, deliberately outside this repository. The repository only
-proves APT-distributability via the ephemeral-key test repo flow.
+## GitHub release flow
 
-**Never commit private signing keys, production repository credentials, or
-API keys.** The test APT repo script generates and destroys its own
-ephemeral key material.
+1. Trigger the **bump** workflow (or make a version-bump PR).
+2. Review `CHANGELOG.md`, the PR, tests and package build.
+3. Merge the PR; the **release** workflow creates a draft GitHub release.
+4. Review the draft and publish it when ready.
 
-## Deployment: GCP Artifact Registry (APT)
+**Publishing the GitHub release currently does not deploy packages to the
+PPA.** Do not treat the release as installed/distributed until Launchpad has
+finished its separate builds.
 
-Releases are published automatically by `.github/workflows/deploy.yml` when a
-`v*` tag is pushed. The workflow builds the `.deb`, checks that the tag,
-`pyproject.toml`, `debian/changelog`, and `constants.py` versions all match,
-runs lintian, uploads to an Artifact Registry APT repository, and creates a
-GitHub release.
+## Planned PPA publishing (Phase 2)
 
-### One-time GCP setup
+The first package upload should be verified manually before enabling the
+GitHub Actions release publisher:
 
-The GCP resources are managed with Terraform in the
-`dribia-operation-terraform` repository (project `dribia-operation`):
+1. Create or reuse an OpenPGP key, register its *public* fingerprint with
+   the personal Launchpad account authorized for the `dribia` team.
+2. Build a clean source package and sign its `.dsc` and `_source.changes`
+   files using the corresponding private key.
+3. Upload it with `dput ppa:dribia/stable <signed_source.changes>`.
+4. Wait for Launchpad to build and publish it. Test installation on a clean
+   supported Ubuntu system.
+5. Automate the same signed source-upload flow in a **protected** GitHub
+   Actions environment, with signing material in encrypted environment secrets.
 
-- APT repository `dribia-apt` in `europe-west1`.
-- `packages-ci` service account with `artifactregistry.writer` on the APT
-  repo, and a `workloadIdentityUser` binding on the GitHub Actions identity
-  pool for each publishing repository (this repository,
-  `dribia/clockify-launchers`, must be in that list).
-- `roles/artifactregistry.reader` on the repo for the `tothom@dribia.com`
-  group (end-user installs).
+Never commit private keys, passphrases, API keys or production APT credentials
+to the repository. Launchpad signs the published repository independently
+of the personal OpenPGP key that authenticates source uploads.
 
-Run `terraform plan` / `terraform apply` there. The identity pool provider
-resource name is the value for the GitHub variable/secret
-`GCP_WORKLOAD_IDENTITY_PROVIDER`;
-`packages-ci@dribia-operation.iam.gserviceaccount.com` is the value for the
-`GCP_APT_PUBLISHER_SERVICE_ACCOUNT` variable.
+Once PPA builds are available, installation is:
 
-Then set GitHub Actions configuration:
-
-- Variables: `GCP_PROJECT_ID=dribia-operation`, `GAR_LOCATION=europe-west1`,
-  `GAR_APT_REPOSITORY=dribia-apt`,
-  `GCP_APT_PUBLISHER_SERVICE_ACCOUNT=packages-ci@dribia-operation.iam.gserviceaccount.com`,
-  plus `GCP_WORKLOAD_IDENTITY_PROVIDER`.
-- No secrets are required; authentication uses OIDC.
-- Optionally protect the `production` environment with required reviewers;
-  the publish job runs in it.
-
-### Releasing a version
-
-The release flow follows the Dribia convention (see dribia/tank):
-
-1. Run the **bump** workflow from the Actions tab (choose major/minor/patch).
-   It updates all four version locations (`pyproject.toml`,
-   `constants.py`, `debian/changelog`, `metainfo.xml`) via
-   `scripts/bump-version.py` and opens a ":label: Version bump to vX.Y.Z"
-   pull request. (`make bump VERSION=...` does the same locally.)
-2. Review and merge the PR. On merge, the **release** workflow creates a
-   **draft GitHub release** tagged `vX.Y.Z`.
-3. Review and **publish** the draft release. Publishing triggers the
-   **Deploy** workflow, which builds the `.deb`, verifies version
-   consistency, runs lintian, uploads to the `dribia-apt` Artifact Registry
-   repository, and attaches the `.deb` to the release.
-
-Deploy cannot be triggered manually; publishing a release is the only
-trigger.
-
-### Installing from the repository (user machines)
-
-Private repositories need the Artifact Registry apt transport and
-credentials; for machines with gcloud user credentials:
-
-```bash
-sudo apt-get install -y apt-transport-artifact-registry
-echo "deb ar+https://europe-west1-apt.pkg.dev/projects/dribia-operation dribia-apt main" | \
-  sudo tee /etc/apt/sources.list.d/clockify-launchers.list
-sudo apt-get update
-sudo apt-get install dribia-clockify-launchers
+```sh
+sudo add-apt-repository ppa:dribia/stable
+sudo apt update
+sudo apt install dribia-clockify-launchers
 ```
 
-The `apt-transport-artifact-registry` package (from Google's
-`apt.pkg.dev` bootstrap repo, see
-https://cloud.google.com/artifact-registry/docs/os-packages/debian/configure)
-authenticates apt with the machine's gcloud or service-account credentials.
-If the repository is made public instead, the standard `deb
-https://europe-west1-apt.pkg.dev/projects/dribia-operation dribia-apt main` line
-works with the signing key from
-`https://europe-west1-apt.pkg.dev/projects/dribia-operation/repos/dribia-apt/gpg`.
+Normal `apt upgrade` then provides package updates.

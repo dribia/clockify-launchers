@@ -16,75 +16,27 @@ Key features:
 
 ## Install
 
-### From the Dribia APT repository (recommended)
+### From the Dribia Launchpad PPA
 
-Packages are published to a private Google Artifact Registry repository.
-You need a Google account with read access to the `dribia-apt` repository in
-the `dribia-operation` project (the `tothom@dribia.com` group has it) and
-the `gcloud` CLI installed.
+The official Ubuntu package source is **[Dribia Stable](https://launchpad.net/~dribia/+archive/ubuntu/stable)** (`ppa:dribia/stable`).
 
-**1. Install Google's Artifact Registry apt transport** (one time):
-
-```sh
-curl -fsSL https://us-apt.pkg.dev/doc/repo-signing-key.gpg | \
-  sudo gpg --dearmor -o /usr/share/keyrings/ar-transport.gpg
-echo "deb [signed-by=/usr/share/keyrings/ar-transport.gpg] https://packages.cloud.google.com/apt apt-transport-artifact-registry-stable main" | \
-  sudo tee /etc/apt/sources.list.d/ar-transport.list
-sudo apt update
-sudo apt install -y apt-transport-artifact-registry
-```
-
-**2. Add the Dribia repository and its signing key.** Artifact Registry
-repositories are signed with Google's generic signing key; the `ar+https`
-scheme routes the download through the authenticated transport from step 1:
+**Migration status:** Clockify Launchers has not yet been published to the PPA.
+The following commands will work **after** the first PPA package has been
+built and published for your Ubuntu release:
 
 ```sh
-curl -fsSL https://us-apt.pkg.dev/doc/repo-signing-key.gpg | \
-  sudo gpg --dearmor -o /usr/share/keyrings/dribia-apt.gpg
-echo "deb [signed-by=/usr/share/keyrings/dribia-apt.gpg] ar+https://europe-west1-apt.pkg.dev/projects/dribia-operation dribia-apt main" | \
-  sudo tee /etc/apt/sources.list.d/dribia.list
-```
-
-**3. Provide Google credentials for root.** The apt transport runs under
-`sudo`, so the [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials)
-must exist for the root user (a plain `gcloud auth application-default login`
-stores them under your own user, where apt cannot see them):
-
-```sh
-sudo gcloud auth application-default login
-```
-
-Log in with your Dribia Google account in the browser window that opens.
-This is needed once; the credential refreshes itself afterwards.
-
-**4. Install and stay updated:**
-
-```sh
+sudo add-apt-repository ppa:dribia/stable
 sudo apt update
 sudo apt install dribia-clockify-launchers
 ```
 
-New releases arrive through regular `apt upgrade`.
+Subsequent updates arrive through normal `apt upgrade`. No Google Cloud
+account, custom APT transport, or private repository credentials are required.
 
-Troubleshooting:
-
-- `failed to obtain default creds` during `apt update`: step 3 was skipped
-  or run without `sudo`; the credentials must belong to root.
-- `does not have a Release file` on the Dribia repository: the transport
-  could not authenticate or is not authorized, and apt reports the failed
-  download generically. Check, in order: step 3 was done with `sudo`
-  (root ADC), you logged in with your `@dribia.com` Google account, and
-  that account can read Artifact Registry in `dribia-operation`
-  (`roles/artifactregistry.reader` is granted to the `tothom@dribia.com`
-  group via Terraform in `dribia-operation-terraform`).
-- `401`/`403` on the Dribia repository: same causes as above; your Google
-  account lacks read access to Artifact Registry in `dribia-operation`.
-- `NO_PUBKEY C0BA5CE6DC6315A3` / `repository is not signed`: the signing key
-  from step 2 is missing, or the sources line lacks the `signed-by` option.
-  As a fallback the key can be fetched from a keyserver:
-  `sudo gpg --no-default-keyring --keyring /usr/share/keyrings/dribia-apt.gpg --keyserver keyserver.ubuntu.com --recv-keys C0BA5CE6DC6315A3`
-- `E: The method driver /usr/lib/apt/methods/ar+https could not be found`:
-  step 1 (the transport package) is missing.
+Until the PPA packages are available, build a local `.deb` as described below.
+If you previously installed from Dribia's private APT repository, remove
+its obsolete source entry once your installation is migrated to the PPA.
+Don't remove the installed application or its user data during migration.
 
 ### From a local build
 
