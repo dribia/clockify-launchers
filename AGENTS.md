@@ -643,15 +643,15 @@ A generated entry should resemble:
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Kaito
-Comment=Start Clockify timer: Tank - Project
+Name=Beta
+Comment=Start Clockify timer: Alpha - Project
 Exec=/usr/bin/clockify-launchers start --launcher 6d17b662-5ba4-4c39-903b-cc319a633fe7
 TryExec=/usr/bin/clockify-launchers
 Icon=/home/example/.local/share/clockify-launchers/icons/6d17b662-5ba4-4c39-903b-cc319a633fe7.svg
 Terminal=false
 StartupNotify=false
 Categories=Office;Utility;
-Keywords=Clockify;Time tracking;Dribia;Kaito;Tank;Project;
+Keywords=Clockify;Time tracking;Demo;Beta;Alpha;Project;
 X-Clockify-Launchers-Managed=true
 X-Clockify-Launchers-Id=6d17b662-5ba4-4c39-903b-cc319a633fe7
 ```
@@ -1637,12 +1637,12 @@ Start with these tickets in order. Split them further as needed, but do not reor
 
 Given:
 
-- Project `Tank`.
+- Project `Alpha`.
 - Tag `Project`.
-- Display name `Kaito`.
+- Display name `Beta`.
 - The user chooses a local icon.
 
-When the user saves, the application creates one owned `.desktop` file whose `Exec` contains only the stable launcher UUID. The API key and Clockify IDs are stored in protected application state, not in `Exec`. Clicking `Kaito` starts the matching Clockify timer and shows a success notification.
+When the user saves, the application creates one owned `.desktop` file whose `Exec` contains only the stable launcher UUID. The API key and Clockify IDs are stored in protected application state, not in `Exec`. Clicking `Beta` starts the matching Clockify timer and shows a success notification.
 
 ### 31.2 Assisted addition
 

@@ -49,8 +49,8 @@ def test_assisted_creates_launchers_from_frequent_activity(env):
     assert result.outcome == "success"
     assert result.removed == ()
     added_signatures = {lc.target.signature for lc in result.added}
-    tank_sig = (fixtures.WS_MAIN.id, "prj-tank", "task-model", ("tag-project",))
-    assert tank_sig in added_signatures
+    alpha_sig = (fixtures.WS_MAIN.id, "prj-alpha", "task-model", ("tag-project",))
+    assert alpha_sig in added_signatures
     for launcher in result.added:
         assert launcher.source is LauncherSource.AUTOMATIC
         assert not launcher.pinned
@@ -173,7 +173,7 @@ def test_full_cap_blocks_additions_visibly(env):
     result = sync.run(ManagementMode.ASSISTED, settings, now=NOW)
     assert result.outcome == "success"
     assert result.added == ()
-    assert {c.project_name for c in result.blocked} >= {"Tank", "Research"}
+    assert {c.project_name for c in result.blocked} >= {"Alpha", "Research"}
     assert "cap reached" in result.detail and "free slot" in result.detail
 
 
@@ -186,7 +186,7 @@ def test_autopilot_reuses_slot_freed_by_removal_in_same_run(env):
     assert result.outcome == "success"
     assert stale.id in {lc.id for lc in result.removed}
     added_projects = {lc.target.project_id for lc in result.added}
-    assert "prj-tank" in added_projects
+    assert "prj-alpha" in added_projects
     # Only one slot was freed: the runner-up candidate waits, visibly.
     assert [c.project_name for c in result.blocked] == ["Research"]
     assert "cap reached" in result.detail

@@ -245,9 +245,9 @@ def test_get_projects_parses_archived_flag_and_fields():
     payload = [
         {
             "id": "p1",
-            "name": "Tank",
+            "name": "Alpha",
             "color": "#03A9F4",
-            "clientName": "Dribia",
+            "clientName": "Example Client",
             "archived": False,
             "billable": True,
         },
@@ -262,9 +262,9 @@ def test_get_projects_parses_archived_flag_and_fields():
     client, _ = make_client(handler)
     projects = client.get_projects("ws1")
     assert [p.id for p in projects] == ["p1", "p2"]
-    assert projects[0].name == "Tank"
+    assert projects[0].name == "Alpha"
     assert projects[0].color == "#03A9F4"
-    assert projects[0].client_name == "Dribia"
+    assert projects[0].client_name == "Example Client"
     assert projects[0].archived is False
     assert projects[0].billable_by_default is True
     assert projects[1].archived is True

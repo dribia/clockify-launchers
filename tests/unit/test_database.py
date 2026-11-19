@@ -57,7 +57,7 @@ def _full_launcher() -> Launcher:
             tag_ids=("b", "a"),
             description="fixed desc",
         ),
-        display_name="Kaito",
+        display_name="Beta",
         comment="Start Clockify timer",
         icon_kind=IconKind.SELECTED,
         icon_path="/tmp/icon.png",

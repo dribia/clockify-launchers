@@ -146,14 +146,14 @@ class MainWindow(Adw.ApplicationWindow):
             Candidate(
                 target=LauncherTarget(
                     workspace_id=fixtures.WS_MAIN.id,
-                    project_id="prj-kaito",
+                    project_id="prj-beta",
                     task_id="task-report",
                 ),
                 count=3,
                 last_use=now - timedelta(days=2),
                 score=2.7,
                 representative_entry_id="te-demo-blocked-1",
-                project_name="Kaito",
+                project_name="Beta",
                 task_name="Quarterly report",
             ),
             Candidate(

@@ -100,8 +100,8 @@ def test_reset_removes_launchers_config_and_db(env, capsys):
     configure(env)
     launcher = env.launcher_service.create(
         account_id=env.account.id,
-        target=LauncherTarget(workspace_id=fixtures.WS_MAIN.id, project_id="prj-tank"),
-        display_name="Kaito",
+        target=LauncherTarget(workspace_id=fixtures.WS_MAIN.id, project_id="prj-alpha"),
+        display_name="Beta",
     )
     desktop_path = Path(launcher.desktop_path)
     assert desktop_path.exists()
