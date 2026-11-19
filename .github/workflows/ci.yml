@@ -58,7 +58,12 @@ jobs:
         run: make deb
 
       - name: Build Debian source package
-        run: make source
+        run: |
+          make source
+          version="$(dpkg-parsechangelog -S Version)"
+          buildinfo="dist/source/dribia-clockify-launchers_${version}_source.buildinfo"
+          test -s "$buildinfo"
+          grep -F "$(basename "$buildinfo")" "dist/source/dribia-clockify-launchers_${version}_source.changes"
 
       - name: Upload UI artifacts
         if: failure()
