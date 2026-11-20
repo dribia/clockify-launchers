@@ -11,7 +11,7 @@ APP_ID = "com.dribia.ClockifyLaunchers"
 EXECUTABLE = "clockify-launchers"
 PACKAGE_NAME = "dribia-clockify-launchers"
 PYTHON_DIST = "clockify-launchers"
-VERSION = "0.5.1"
+VERSION = "0.5.2"
 
 DESKTOP_FILE_PREFIX = f"{APP_ID}."
 DESKTOP_FILE_SUFFIX = ".desktop"
