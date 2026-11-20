@@ -1,0 +1,132 @@
+name: publish-ppa
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: launchpad-ppa-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Only stable releases of the official repository can access the
+    # protected signing environment. PR events never enter this job.
+    if: github.repository == 'dribia/clockify-launchers' && !github.event.release.prerelease
+    runs-on: ubuntu-24.04
+    environment: ppa-production
+    steps:
+      - name: Checkout the exact release tag
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify release version and ancestry
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "Release tag must have the form vX.Y.Z" >&2
+            exit 1
+          fi
+          version="${BASH_REMATCH[1]}"
+          pyproject_version="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          changelog_version="$(dpkg-parsechangelog -S Version)"
+          if [[ "$version" != "$pyproject_version" || "$changelog_version" != "$version-1" ]]; then
+            echo "Release tag, pyproject.toml and debian/changelog versions disagree" >&2
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
+            echo "Refusing to publish a release tag not reachable from main" >&2
+            exit 1
+          fi
+
+      - name: Install Debian source packaging and upload tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential debhelper dh-python pybuild-plugin-pyproject \
+            python3-all python3-setuptools desktop-file-utils appstream \
+            devscripts dput gnupg xz-utils
+
+      - name: Build both Ubuntu source packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_version="$(dpkg-parsechangelog -S Version)"
+          for suite in noble resolute; do
+            case "$suite" in
+              noble) ubuntu_version=24.04 ;;
+              resolute) ubuntu_version=26.04 ;;
+            esac
+            PPA_SERIES="$suite" make source
+            version="${base_version}~ppa1~ubuntu${ubuntu_version}.1"
+            changes="dist/source/dribia-clockify-launchers_${version}_source.changes"
+            test -s "$changes"
+            grep -Fx "Distribution: $suite" "$changes"
+            grep -Fx "Version: $version" "$changes"
+            echo "Prepared $changes" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Sign and upload to Dribia Stable PPA
+        shell: bash
+        env:
+          PPA_GPG_PRIVATE_KEY: ${{ secrets.PPA_GPG_PRIVATE_KEY }}
+          PPA_GPG_PASSPHRASE: ${{ secrets.PPA_GPG_PASSPHRASE }}
+          PPA_GPG_FINGERPRINT: ${{ vars.PPA_GPG_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [[ -z "$PPA_GPG_PRIVATE_KEY" || -z "$PPA_GPG_PASSPHRASE" || -z "$PPA_GPG_FINGERPRINT" ]]; then
+            echo "Configure the ppa-production environment secrets and fingerprint variable first" >&2
+            exit 1
+          fi
+          fingerprint="${PPA_GPG_FINGERPRINT//[[:space:]]/}"
+          if [[ ! "$fingerprint" =~ ^[A-Fa-f0-9]{40}$ ]]; then
+            echo "PPA_GPG_FINGERPRINT must contain a 40-hex-character OpenPGP fingerprint" >&2
+            exit 1
+          fi
+          export GNUPGHOME
+          GNUPGHOME="$(mktemp -d "$RUNNER_TEMP/ppa-gnupg.XXXXXXXX")"
+          passphrase_file="$(mktemp "$RUNNER_TEMP/ppa-pass.XXXXXXXX")"
+          gpg_wrapper="$(mktemp "$RUNNER_TEMP/ppa-gpg.XXXXXXXX")"
+          trap 'rm -rf "$GNUPGHOME"; rm -f "$passphrase_file" "$gpg_wrapper"' EXIT
+
+          printf '%s\n' "$PPA_GPG_PRIVATE_KEY" | gpg --batch --import
+          if ! gpg --batch --list-secret-keys "$fingerprint" >/dev/null 2>&1; then
+            echo "The imported private key does not match PPA_GPG_FINGERPRINT" >&2
+            exit 1
+          fi
+
+          printf '%s\n' "$PPA_GPG_PASSPHRASE" > "$passphrase_file"
+          export PPA_GPG_PASSPHRASE_FILE="$passphrase_file"
+          cat > "$gpg_wrapper" <<'GPG_WRAPPER'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec gpg --batch --yes --pinentry-mode loopback \
+            --passphrase-file "$PPA_GPG_PASSPHRASE_FILE" "$@"
+          GPG_WRAPPER
+          chmod 700 "$gpg_wrapper"
+
+          base_version="$(dpkg-parsechangelog -S Version)"
+          # Sign both packages before uploading either to limit partial releases.
+          for ubuntu_version in 24.04 26.04; do
+            version="${base_version}~ppa1~ubuntu${ubuntu_version}.1"
+            changes="dist/source/dribia-clockify-launchers_${version}_source.changes"
+            debsign --no-conf -p"$gpg_wrapper" -k"$fingerprint" "$changes"
+            gpg --verify "$changes"
+          done
+
+          for ubuntu_version in 24.04 26.04; do
+            version="${base_version}~ppa1~ubuntu${ubuntu_version}.1"
+            changes="dist/source/dribia-clockify-launchers_${version}_source.changes"
+            dput ppa:dribia/stable "$changes"
+            echo "Uploaded $changes to ppa:dribia/stable (Launchpad build pending)" >> "$GITHUB_STEP_SUMMARY"
+          done
