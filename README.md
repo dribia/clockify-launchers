@@ -18,25 +18,24 @@ Key features:
 
 ### From the Dribia Launchpad PPA
 
-The official Ubuntu package source is **[Dribia Stable](https://launchpad.net/~dribia/+archive/ubuntu/stable)** (`ppa:dribia/stable`).
+The official Ubuntu package source is **[Dribia Stable](https://launchpad.net/~dribia/+archive/ubuntu/stable)** (`ppa:dribia/stable`). Check [published packages](https://launchpad.net/~dribia/+archive/ubuntu/stable/+packages) for availability on your Ubuntu release.
 
-**Migration status:** Clockify Launchers has not yet been published to the PPA.
-The following commands will work **after** the first PPA package has been
-built and published for your Ubuntu release:
+On Ubuntu 24.04 LTS or 26.04 LTS, once a package is published for your release:
 
 ```sh
+sudo apt update
+sudo apt install software-properties-common   # if add-apt-repository is missing
 sudo add-apt-repository ppa:dribia/stable
 sudo apt update
 sudo apt install dribia-clockify-launchers
 ```
 
-Subsequent updates arrive through normal `apt upgrade`. No Google Cloud
-account, custom APT transport, or private repository credentials are required.
+Open **Clockify Launchers** from the Ubuntu application menu. Future updates
+arrive via normal `apt upgrade`. No Google Cloud account or internal Dribia
+credentials are required.
 
-Until the PPA packages are available, build a local `.deb` as described below.
-If you previously installed from Dribia's private APT repository, remove
-its obsolete source entry once your installation is migrated to the PPA.
-Don't remove the installed application or its user data during migration.
+Ubuntu 22.04 and 20.04 are **not supported**: the app needs Python 3.12+ and
+modern GTK4/libadwaita APIs unavailable in those releases.
 
 ### From a local build
 
