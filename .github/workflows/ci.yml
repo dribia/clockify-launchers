@@ -57,13 +57,35 @@ jobs:
       - name: Build Debian package
         run: make deb
 
-      - name: Build Debian source package
+      - name: Build and verify Debian source packages
+        shell: bash
         run: |
+          set -euo pipefail
           make source
-          version="$(dpkg-parsechangelog -S Version)"
-          buildinfo="dist/source/dribia-clockify-launchers_${version}_source.buildinfo"
-          test -s "$buildinfo"
-          grep -F "$(basename "$buildinfo")" "dist/source/dribia-clockify-launchers_${version}_source.changes"
+          base_version="$(dpkg-parsechangelog -S Version)"
+          upstream_version="${base_version%-*}"
+          orig="dist/source/dribia-clockify-launchers_${upstream_version}.orig.tar.xz"
+          test -s "$orig"
+          baseline_hash="$(sha256sum "$orig" | cut -d ' ' -f1)"
+
+          for suite in noble resolute; do
+            case "$suite" in
+              noble) suffix="24.04" ;;
+              resolute) suffix="26.04" ;;
+            esac
+            PPA_SERIES="$suite" make source
+            version="${base_version}~ppa1~ubuntu${suffix}.1"
+            changes="dist/source/dribia-clockify-launchers_${version}_source.changes"
+            buildinfo="dist/source/dribia-clockify-launchers_${version}_source.buildinfo"
+            dsc="dist/source/dribia-clockify-launchers_${version}.dsc"
+            test -s "$changes"
+            test -s "$buildinfo"
+            test -s "$dsc"
+            grep -Fx "Distribution: $suite" "$changes"
+            grep -Fx "Version: $version" "$changes"
+            grep -F "$(basename "$buildinfo")" "$changes"
+            test "$(sha256sum "$orig" | cut -d ' ' -f1)" = "$baseline_hash"
+          done
 
       - name: Upload UI artifacts
         if: failure()
